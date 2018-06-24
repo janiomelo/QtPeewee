@@ -1,62 +1,124 @@
-import sys
-
-from PyQt5.QtWidgets import QApplication
 from QPeewee import (
-    QFormulario, QCharEdit, QFormDialog, QIntEdit, QDateWithCalendarEdit,
-    QRegExpEdit, QResultList, QListDialog)
-from peewee import SqliteDatabase, Model, CharField, IntegerField, DateField
-
-db = SqliteDatabase('my_app.db')
+    QFormulario, QCharEdit, QFormDialog, QDateWithCalendarEdit, QTableDialog,
+    QResultList, QListDialog, QFkComboBox, QResultTable, run, app)
+from peewee import Model, CharField, DateField, ForeignKeyField, fn
 
 
 class BaseModel(Model):
     class Meta:
-        database = db
+        database = app.db
 
 
-class User(BaseModel):
-    nome = CharField()
-    username = CharField(unique=True)
-    email = CharField()
-    idade = IntegerField()
-    data = DateField()
+class Tipo(BaseModel):
+    descricao = CharField()
 
     def __str__(self):
-        return self.nome
+        return self.descricao
 
 
-class FormularioUser(QFormulario):
-    ENTIDADE = User
+class Cliente(BaseModel):
+    nome = CharField()
+    email = CharField()
+    tipo = ForeignKeyField(Tipo)
+
+
+class Funcionario(BaseModel):
+    nome = CharField()
+    nascimento = DateField()
+    tipo = ForeignKeyField(Tipo)
+
+
+class FormularioCliente(QFormulario):
+    ENTIDADE = Cliente
 
     def __init__(self):
-        super(FormularioUser, self).__init__()
+        super(FormularioCliente, self).__init__()
         self.nome = QCharEdit(
             column_name='nome', max_lenght=100, required=True)
-        self.username = QCharEdit(column_name='username')
-        self.email = QRegExpEdit(
-            column_name='email', regex='^[A-Z0-9._%+-]+@[A-Z0-9._%+-]+$')
-        self.idade = QIntEdit(column_name='idade')
-        self.data = QDateWithCalendarEdit(column_name='data')
+        self.email = QCharEdit(column_name='email')
+        self.tipo = QFkComboBox(entity=Tipo, column_name='tipo')
 
 
-class UserDialog(QFormDialog):
-    FORMULARIO = FormularioUser
+class ClienteDialog(QFormDialog):
+    FORMULARIO = FormularioCliente
 
 
-class UsersList(QResultList):
-    QUERY = User.select().order_by(User.nome)
-    FORM = UserDialog
+class FormularioFuncionario(QFormulario):
+    ENTIDADE = Funcionario
+
+    def __init__(self):
+        super(FormularioFuncionario, self).__init__()
+        self.nome = QCharEdit(
+            column_name='nome', max_lenght=100, required=True)
+        self.nascimento = QDateWithCalendarEdit(column_name='nascimento')
+        self.tipo = QFkComboBox(entity=Tipo, column_name='tipo')
+
+
+class FuncionarioDialog(QFormDialog):
+    FORMULARIO = FormularioFuncionario
+
+
+# -----------------------------------------------------------------------------
+
+class ClientesList(QResultTable):
+    FORM = ClienteDialog
 
     def get_value(self, obj):
-        return str(obj)
+        return obj.nome
+
+    def get_all(self):
+        return Cliente.select().join(
+            Tipo, on=Tipo.id == Cliente.tipo).order_by(fn.lower(Cliente.nome))
+
+    def columns(self):
+        return [
+            Cliente.id, Cliente.nome, Cliente.email, Tipo.descricao
+        ]
 
 
-class UsersListDialog(QListDialog):
-    LIST = UsersList
+class ClientesListDialog(QTableDialog):
+    LIST = ClientesList
+
+# -----------------------------------------------------------------------------
+
+
+class FuncionariosList(QResultList):
+    FORM = FuncionarioDialog
+
+    def get_value(self, obj):
+        return obj.nome
+
+    def get_all(self):
+        return Funcionario.select().order_by(Funcionario.nome)
+
+
+class FuncionariosListDialog(QListDialog):
+    LIST = FuncionariosList
+
+
+def abrir_cliente(e):
+    dialog = ClientesListDialog()
+    dialog.exec_()
+
+
+def abrir_funcionario(e):
+    dialog = FuncionariosListDialog()
+    dialog.exec_()
 
 
 if __name__ == '__main__':
-    User.create_table()
-    app = QApplication(sys.argv)
-    dialog = UsersListDialog()
-    sys.exit(dialog.exec())
+    Tipo.create_table()
+    Cliente.create_table()
+    Funcionario.create_table()
+
+    clienteMenu = app.formPrincipal.new_menu('&Clientes')
+    app.formPrincipal.new_action(
+        clienteMenu, '&Consultar', abrir_cliente, icon=None,
+        tinytxt='Ctrl+C', tip='Consulta ao cadastro de clientes.')
+
+    funcionarioMenu = app.formPrincipal.new_menu('&Funcionários')
+    app.formPrincipal.new_action(
+        funcionarioMenu, '&Consultar', abrir_funcionario, icon=None,
+        tinytxt='Ctrl+F', tip='Consulta ao cadastro de funcionários.')
+
+    run()

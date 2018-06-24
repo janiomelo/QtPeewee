@@ -7,8 +7,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication
 from QPeewee import (
-    QCharEdit, QDateWithCalendarEdit, QIntEdit, QHiddenEdit, QFormDialog,
-    QFormulario, QDialogButtonBox, QDecimalEdit, QRegExpEdit)
+    QCharEdit, QDateWithCalendarEdit, QIntEdit, QHiddenEdit, MyQListWidgetItem,
+    QFormulario, QDialogButtonBox, QDecimalEdit, QRegExpEdit, QFormDialog,
+    QResultList)
 from peewee import SqliteDatabase, Model, CharField, IntegerField, DateField
 
 
@@ -312,7 +313,7 @@ class QFormDialogTest(unittest.TestCase):
         self.assertEqual(
             form.data.get_valor(), date.today().strftime('%Y-%m-%d'))
 
-    def test_incluir_dados(self):
+    def test_inclui_dados(self):
         self.limpa_base()
         f = self.form()
         form = f.instancia_formulario
@@ -331,5 +332,15 @@ class QFormDialogTest(unittest.TestCase):
         self.assertEqual(
             form.data.get_valor(), date.today().strftime('%Y-%m-%d'))
 
+
+class MyQListWidgetItemTest(unittest.TestCase):
+    def limpa_base(self):
+        User.delete().execute()
+
+    def test_exibe_texto_correto(self):
+        self.limpa_base()
+        objeto = user_factory()
+        op = MyQListWidgetItem(QResultList(), objeto=objeto)
+        self.assertEqual(op.text(), str(objeto))
 
 unittest.main(argv=sys.argv)

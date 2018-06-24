@@ -1,15 +1,40 @@
+import json
+import locale
 import re
+import sys
+import hashlib
 
 from PyQt5.QtCore import Qt, QDate, QRegExp
-from PyQt5.QtGui import QDoubleValidator, QIntValidator, QRegExpValidator
+from PyQt5.QtGui import (
+    QDoubleValidator, QIntValidator, QRegExpValidator, QIcon)
 from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QFormLayout, QWidget, QMessageBox, QDateEdit, QDialog,
-    QDialogButtonBox, QVBoxLayout, QGroupBox, QListWidget, QListWidgetItem)
+    QDialogButtonBox, QVBoxLayout, QGroupBox, QListWidget, QListWidgetItem,
+    QPushButton, QHBoxLayout, QMainWindow, QAction, QApplication, QComboBox,
+    QTableWidget, QTableWidgetItem)
 import peewee
 
 
 def empty(str_test):
     return str_test is None or len(str(str_test).replace(' ', '')) == 0
+
+
+def notifica(text, title, icon, buttons):
+    msg = QMessageBox()
+    msg.setIcon(icon)
+    msg.setText(text)
+    msg.setWindowTitle(title)
+    msg.setStandardButtons(buttons)
+    return msg.exec()
+
+
+def notifica_erro(text, title):
+    notifica(text, title, QMessageBox.Critical, QMessageBox.Ok)
+
+
+def notifica_confirmacao(text, title):
+    return notifica(
+        text, title, QMessageBox.Question, QMessageBox.Yes | QMessageBox.No)
 
 
 class Validation:
@@ -113,6 +138,44 @@ class QIntEdit(QLineEdit, Validation):
         return True
 
 
+class QFkComboBox(QComboBox, Validation):
+    def __init__(
+            self, entity, required=True, column_name=None, parent=None,
+            field_type=Validation.INTEGER):
+        QComboBox.__init__(self, parent=parent)
+        Validation.__init__(self, required=required, field_type=field_type)
+        self.column_name = column_name
+        self.entity = entity
+        self.values = []
+        self.update_values()
+
+    def get_all(self):
+        return self.entity.select()
+
+    def update_values(self):
+        self.clear()
+        self.values = []
+        for i in self.get_all():
+            self.values.append(i)
+            self.addItem(self.get_value(i))
+
+    def get_value(self, obj) -> str:
+        return str(obj)
+
+    def set_valor(self, id):
+        i = 0
+        for obj in self.values:
+            if obj.get_id() == id:
+                self.setCurrentIndex(i)
+            i += 1
+
+    def get_valor(self):
+        try:
+            return self.values[self.currentIndex()]
+        except Exception:
+            return None
+
+
 class QRegExpEdit(QLineEdit, Validation):
     def __init__(
             self, regex, required=True, column_name=None,
@@ -136,7 +199,7 @@ class QRegExpEdit(QLineEdit, Validation):
         if Validation.is_valid(self, value):
             if (value == re.match(str(self.regex), str(value))):
                 return True
-            return False
+        return False
 
 
 class QDecimalEdit(QLineEdit, Validation):
@@ -284,12 +347,9 @@ class QFormDialog(QDialog):
             self.salva_dados()
             super(QFormDialog, self).accept(*args, **kwargs)
         else:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText('Preencha todos os campos obrigatórios')
-            msg.setWindowTitle('Impossível salvar os dados')
-            msg.setStandardButtons(QMessageBox.Ok)
-            msg.exec()
+            notifica_erro(
+                text='Preencha todos os campos obrigatórios',
+                title='Impossível salvar os dados')
         self.atualiza_destaque()
 
     def salva_dados(self):
@@ -316,8 +376,9 @@ class QFormDialog(QDialog):
 class MyQListWidgetItem(QListWidgetItem):
     def __init__(self, parent, text=None, objeto=None, *args, **kwargs):
         self.__objeto = objeto
+        self.parent = parent
         if text is None:
-            text = parent.get_value(objeto)
+            text = self.parent.get_value(objeto)
         QListWidget.__init__(self, text, parent, *args, **kwargs)
 
     def setObjeto(self, objeto):
@@ -331,7 +392,6 @@ class MyQListWidgetItem(QListWidgetItem):
 
 
 class QResultList(QListWidget):
-    QUERY = None
     FORM = QFormDialog
 
     def __init__(self, parent=None):
@@ -341,15 +401,15 @@ class QResultList(QListWidget):
         self.itemDoubleClicked.connect(self.on_double_click)
 
     def get_all(self):
-        return self.QUERY
+        return []
 
     def popular_lista(self):
         self.clear()
         for item in self.get_all():
             self.addItem(MyQListWidgetItem(self, objeto=item))
 
-    def get_value(self, obj):
-        return obj
+    def get_value(self, obj) -> str:
+        return str(obj)
 
     def selected(self):
         try:
@@ -361,17 +421,248 @@ class QResultList(QListWidget):
         pass
 
     def on_double_click(self):
-        self.FORM(self.selected().id).exec()
+        self.abrir_formulario(self.selected().id)
+
+    def abrir_formulario(self, id=None):
+        formulario = self.FORM(id)
+        formulario.buttonBox.accepted.connect(self.popular_lista)
+        formulario.exec()
 
 
 class QListDialog(QDialog):
     LIST = QResultList
 
-    def __init__(self, pk=None):
+    def __init__(self):
         super(QListDialog, self).__init__()
-        self.instancia_lista = self.lista(self)
         self.setWindowTitle("Lista")
+        window_layout = QVBoxLayout()
+        title = QLabel("Exibe resultado da consulta")
+        window_layout.addWidget(title)
+        actions = self.adiciona_botoes()
+        window_layout.addWidget(actions)
+        self.instancia_lista = self.lista(self)
+        window_layout.addWidget(self.instancia_lista)
+        self.setLayout(window_layout)
+
+    def adiciona_botoes(self):
+        actions = QWidget()
+        actions_layout = QHBoxLayout(self)
+        button_novo = QPushButton('Novo')
+        button_novo.clicked.connect(self.novo)
+        actions_layout.addWidget(button_novo)
+        button_editar = QPushButton('Editar')
+        button_editar.clicked.connect(self.editar)
+        actions_layout.addWidget(button_editar)
+        button_excluir = QPushButton('Excluir')
+        button_excluir.clicked.connect(self.excluir)
+        actions_layout.addWidget(button_excluir)
+        actions.setLayout(actions_layout)
+        return actions
+
+    def novo(self, *args, **kwargs):
+        self.instancia_lista.abrir_formulario()
+
+    def editar(self, *args, **kwargs):
+        selecionado = self.instancia_lista.selected()
+        if selecionado is not None:
+            self.instancia_lista.abrir_formulario(selecionado)
+
+    def excluir(self, *args, **kwargs):
+        selecionado = self.instancia_lista.selected()
+        if selecionado is not None:
+            entidade = self.instancia_lista.FORM.FORMULARIO.ENTIDADE
+            sql = entidade.delete().where(entidade.id == selecionado.id)
+
+            op = notifica_confirmacao(
+                text='Confirma a exclusão do registro selecionado?',
+                title='Excluir registro')
+
+            if op == QMessageBox.Yes:
+                sql.execute()
+                self.instancia_lista.popular_lista()
 
     @property
     def lista(self):
         return self.LIST
+
+
+class QResultTable(QTableWidget):
+    FORM = QFormDialog
+
+    def __init__(self, parent=None):
+        QTableWidget.__init__(self, parent=parent)
+        self.itemClicked.connect(self.on_click)
+        self.itemDoubleClicked.connect(self.on_double_click)
+        self.update_result_set()
+        self.show()
+
+    def get_all(self):
+        return []
+
+    def columns(self):
+        return []
+
+    def update_result_set(self):
+        itens = self.get_all()
+        self.clear()
+        self.setColumnCount(len(self.columns()))
+        self.setRowCount(itens.count())
+        numRows = 0
+        for item in itens:
+            # self.insertRow(numRows)
+            i = 0
+            for column in self.columns():
+                if not column.model == itens.model:
+                    txt = item.tipo.descricao
+                else:
+                    txt = str(getattr(item, column.column_name))
+                self.setItem(numRows, i, QTableWidgetItem(txt))
+                i += 1
+            numRows += 1
+
+    def get_value(self, obj) -> str:
+        return str(obj)
+
+    def selected(self):
+        try:
+            return None
+        except Exception:
+            return None
+
+    def on_click(self):
+        pass
+
+    def on_double_click(self):
+        self.abrir_formulario(self.selected().id)
+
+    def abrir_formulario(self, id=None):
+        formulario = self.FORM(id)
+        formulario.buttonBox.accepted.connect(self.update_result_set)
+        formulario.exec()
+
+
+class QTableDialog(QListDialog):
+    LIST = QResultTable
+
+    def __init__(self):
+        super(QTableDialog, self).__init__()
+        self.setWindowTitle("Tabela")
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_F5:
+            self.instancia_lista.update_result_set()
+        else:
+            super(QTableDialog, self).keyPressEvent(event)
+
+
+class QPrincipal(QMainWindow):
+    def __init__(self):
+        super(QPrincipal, self).__init__()
+        self.import_env_vars()
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
+        locale.setlocale(locale.LC_ALL, self.env('locale'))
+        self.initUI()
+
+    def import_env_vars(self):
+        data = None
+        with open('environment.json') as f:
+            data = json.load(f)
+        self.__env_vars = data
+
+    def env(self, key):
+        if self.__env_vars is None:
+            raise Exception("Environment variables not defined.")
+        if key not in self.__env_vars.keys():
+            raise Exception("Key '{0}' not defined.".format(key))
+        return self.__env_vars[key]
+
+    def new_menu(self, label: str):
+        return self.menubar.addMenu(label)
+
+    def new_action(
+            self, parent, text, event, icon=None, tinytxt=None, tip=None):
+        if icon is not None:
+            exitAction = QAction(icon, text, self)
+        else:
+            exitAction = QAction(text, self)
+        if tinytxt is not None:
+            exitAction.setShortcut(tinytxt)
+        if tip is not None:
+            exitAction.setStatusTip(tip)
+        exitAction.triggered.connect(event)
+        parent.addAction(exitAction)
+
+    def initUI(self, icon=None):
+        self.menubar = self.menuBar()
+        fileMenu = self.new_menu('&Arquivo')
+        self.new_action(
+            fileMenu, '&Sair', self.close, icon=QIcon('exit.png'),
+            tinytxt='Ctrl+Q', tip='Sair da aplicação.')
+        self.statusBar().showMessage('Ready')
+        # x, y, w, h
+        self.setGeometry(100, 100, 800, 600)
+        self.setWindowTitle('Statusbar')
+        self.show()
+
+
+class QPeeweeApp(QApplication):
+    PRINCIPAL_FORM = QPrincipal
+
+    def __init__(self, argv):
+        QApplication.__init__(self, argv)
+        self.__principal = self.PRINCIPAL_FORM()
+        self.__db = None
+
+    @property
+    def db(self):
+        if self.__db is None:
+            self.__db = peewee.SqliteDatabase('app.db')
+        return self.__db
+
+    @property
+    def formPrincipal(self):
+        return self.__principal
+
+
+app = QPeeweeApp(sys.argv)
+
+
+class User(peewee.Model):
+    login = peewee.CharField()
+    password = peewee.CharField(max_length=32)
+
+    class Meta:
+        database = app.db
+
+
+def default_hash(txt):
+    m = hashlib.md5()
+    m.update(txt)
+    return m.hexdigest()
+
+
+class ForbiddenException(Exception):
+    pass
+
+
+class AuthService:
+    def __init__(self):
+        self.__user = None
+
+    @property
+    def user(self):
+        return self.__user
+
+    def authenticate(self, login: str, password: str):
+        try:
+            user = User.get(User.login == login)
+            if not user.password == default_hash(password):
+                raise ForbiddenException()
+            self.__user = user
+            return self.user
+        except peewee.DoesNotExist:
+            raise ForbiddenException()
+
+
+def run():
+    sys.exit(app.exec())
