@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QFormLayout, QWidget, QMessageBox, QDateEdit, QDialog,
     QDialogButtonBox, QVBoxLayout, QGroupBox, QListWidget, QListWidgetItem,
     QPushButton, QHBoxLayout, QMainWindow, QAction, QApplication, QComboBox,
-    QTableWidget, QTableWidgetItem)
+    QTableWidget, QTableWidgetItem, QHeaderView)
 import peewee
 
 
@@ -35,6 +35,16 @@ def notifica_erro(text, title):
 def notifica_confirmacao(text, title):
     return notifica(
         text, title, QMessageBox.Question, QMessageBox.Yes | QMessageBox.No)
+
+
+class Centralize:
+    def center(self):
+        frameGm = self.frameGeometry()
+        screen = QApplication.desktop().screenNumber(
+            QApplication.desktop().cursor().pos())
+        centerPoint = QApplication.desktop().screenGeometry(screen).center()
+        frameGm.moveCenter(centerPoint)
+        self.move(frameGm.topLeft())
 
 
 class Validation:
@@ -295,11 +305,12 @@ class QFormulario(QFormLayout):
         return b
 
 
-class QFormDialog(QDialog):
+class QFormDialog(QDialog, Centralize):
     FORMULARIO = QFormulario
 
     def __init__(self, pk=None):
         super(QFormDialog, self).__init__()
+        super(Centralize, self).__init__()
         self.createFormGroupBox()
 
         self.buttonBox = QDialogButtonBox(
@@ -313,6 +324,7 @@ class QFormDialog(QDialog):
         self.setLayout(mainLayout)
 
         self.setWindowTitle("Formulário")
+        self.setGeometry(100, 100, 600, 400)
 
         self.pk = pk
 
@@ -322,6 +334,7 @@ class QFormDialog(QDialog):
             objeto = None
 
         self.instancia_formulario = self.form.get(objeto)
+        self.center()
 
     @property
     def form(self):
@@ -396,14 +409,14 @@ class QResultList(QListWidget):
 
     def __init__(self, parent=None):
         QListWidget.__init__(self, parent=parent)
-        self.popular_lista()
+        self.update_result_set()
         self.itemClicked.connect(self.on_click)
         self.itemDoubleClicked.connect(self.on_double_click)
 
     def get_all(self):
         return []
 
-    def popular_lista(self):
+    def update_result_set(self):
         self.clear()
         for item in self.get_all():
             self.addItem(MyQListWidgetItem(self, objeto=item))
@@ -425,15 +438,17 @@ class QResultList(QListWidget):
 
     def abrir_formulario(self, id=None):
         formulario = self.FORM(id)
-        formulario.buttonBox.accepted.connect(self.popular_lista)
+        formulario.buttonBox.accepted.connect(self.update_result_set)
         formulario.exec()
 
 
-class QListDialog(QDialog):
+class QListDialog(QDialog, Centralize):
     LIST = QResultList
 
     def __init__(self):
         super(QListDialog, self).__init__()
+        super(Centralize, self).__init__()
+        self.setGeometry(100, 100, 600, 400)
         self.setWindowTitle("Lista")
         window_layout = QVBoxLayout()
         title = QLabel("Exibe resultado da consulta")
@@ -443,6 +458,7 @@ class QListDialog(QDialog):
         self.instancia_lista = self.lista(self)
         window_layout.addWidget(self.instancia_lista)
         self.setLayout(window_layout)
+        self.center()
 
     def adiciona_botoes(self):
         actions = QWidget()
@@ -479,7 +495,7 @@ class QListDialog(QDialog):
 
             if op == QMessageBox.Yes:
                 sql.execute()
-                self.instancia_lista.popular_lista()
+                self.instancia_lista.update_result_set()
 
     @property
     def lista(self):
@@ -493,7 +509,9 @@ class QResultTable(QTableWidget):
         QTableWidget.__init__(self, parent=parent)
         self.itemClicked.connect(self.on_click)
         self.itemDoubleClicked.connect(self.on_double_click)
+        self.values = None
         self.update_result_set()
+        self.verticalHeader().hide()
         self.show()
 
     def get_all(self):
@@ -502,17 +520,26 @@ class QResultTable(QTableWidget):
     def columns(self):
         return []
 
+    def set_headers(self):
+        header = self.horizontalHeader()
+        labels = []
+        for i, c in enumerate(self.columns()):
+            labels.append(c.column_name)
+            header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+        self.setHorizontalHeaderLabels(labels)
+
     def update_result_set(self):
-        itens = self.get_all()
+        self.values = self.get_all()
         self.clear()
         self.setColumnCount(len(self.columns()))
-        self.setRowCount(itens.count())
+        self.setRowCount(self.values.count())
+        self.set_headers()
         numRows = 0
-        for item in itens:
+        for item in self.values:
             # self.insertRow(numRows)
             i = 0
             for column in self.columns():
-                if not column.model == itens.model:
+                if not column.model == self.values.model:
                     txt = item.tipo.descricao
                 else:
                     txt = str(getattr(item, column.column_name))
@@ -525,7 +552,7 @@ class QResultTable(QTableWidget):
 
     def selected(self):
         try:
-            return None
+            return self.values[self.currentRow()]
         except Exception:
             return None
 
@@ -541,12 +568,15 @@ class QResultTable(QTableWidget):
         formulario.exec()
 
 
-class QTableDialog(QListDialog):
+class QTableDialog(QListDialog, Centralize):
     LIST = QResultTable
 
     def __init__(self):
         super(QTableDialog, self).__init__()
+        super(Centralize, self).__init__()
+        self.setGeometry(100, 100, 600, 400)
         self.setWindowTitle("Tabela")
+        self.center()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_F5:
@@ -555,9 +585,10 @@ class QTableDialog(QListDialog):
             super(QTableDialog, self).keyPressEvent(event)
 
 
-class QPrincipal(QMainWindow):
+class QPrincipal(QMainWindow, Centralize):
     def __init__(self):
         super(QPrincipal, self).__init__()
+        super(Centralize, self).__init__()
         self.import_env_vars()
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         locale.setlocale(locale.LC_ALL, self.env('locale'))
@@ -601,22 +632,21 @@ class QPrincipal(QMainWindow):
         self.statusBar().showMessage('Ready')
         # x, y, w, h
         self.setGeometry(100, 100, 800, 600)
-        self.setWindowTitle('Statusbar')
+        self.setWindowTitle('### DEFINIR ###')
+        self.center()
         self.show()
 
 
 class QPeeweeApp(QApplication):
     PRINCIPAL_FORM = QPrincipal
 
-    def __init__(self, argv):
+    def __init__(self, argv, db):
         QApplication.__init__(self, argv)
         self.__principal = self.PRINCIPAL_FORM()
-        self.__db = None
+        self.__db = db
 
     @property
     def db(self):
-        if self.__db is None:
-            self.__db = peewee.SqliteDatabase('app.db')
         return self.__db
 
     @property
@@ -624,7 +654,7 @@ class QPeeweeApp(QApplication):
         return self.__principal
 
 
-app = QPeeweeApp(sys.argv)
+app = QPeeweeApp(sys.argv, peewee.SqliteDatabase('app.db'))
 
 
 class User(peewee.Model):

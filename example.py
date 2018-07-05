@@ -58,6 +58,19 @@ class FuncionarioDialog(QFormDialog):
     FORMULARIO = FormularioFuncionario
 
 
+class FormularioTipo(QFormulario):
+    ENTIDADE = Tipo
+
+    def __init__(self):
+        super(FormularioTipo, self).__init__()
+        self.descricao = QCharEdit(
+            column_name='descricao', max_lenght=100, required=True)
+
+
+class TipoDialog(QFormDialog):
+    FORMULARIO = FormularioTipo
+
+
 # -----------------------------------------------------------------------------
 
 class ClientesList(QResultTable):
@@ -95,6 +108,22 @@ class FuncionariosList(QResultList):
 class FuncionariosListDialog(QListDialog):
     LIST = FuncionariosList
 
+# -----------------------------------------------------------------------------
+
+
+class TiposList(QResultList):
+    FORM = TipoDialog
+
+    def get_value(self, obj):
+        return obj.descricao
+
+    def get_all(self):
+        return Tipo.select().order_by(Tipo.descricao)
+
+
+class TiposListDialog(QListDialog):
+    LIST = TiposList
+
 
 def abrir_cliente(e):
     dialog = ClientesListDialog()
@@ -103,6 +132,11 @@ def abrir_cliente(e):
 
 def abrir_funcionario(e):
     dialog = FuncionariosListDialog()
+    dialog.exec_()
+
+
+def abrir_tipo(e):
+    dialog = TiposListDialog()
     dialog.exec_()
 
 
@@ -120,5 +154,10 @@ if __name__ == '__main__':
     app.formPrincipal.new_action(
         funcionarioMenu, '&Consultar', abrir_funcionario, icon=None,
         tinytxt='Ctrl+F', tip='Consulta ao cadastro de funcionários.')
+
+    tipoMenu = app.formPrincipal.new_menu('&Tipo')
+    app.formPrincipal.new_action(
+        tipoMenu, '&Consultar', abrir_tipo, icon=None,
+        tinytxt='Ctrl+T', tip='Consulta ao cadastro de tipos.')
 
     run()
