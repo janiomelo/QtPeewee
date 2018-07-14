@@ -4,14 +4,14 @@ import re
 import sys
 import hashlib
 
-from PyQt5.QtCore import Qt, QDate, QRegExp
+from PyQt5.QtCore import Qt, QDate, QRegExp, QDateTime
 from PyQt5.QtGui import (
     QDoubleValidator, QIntValidator, QRegExpValidator, QIcon)
 from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QFormLayout, QWidget, QMessageBox, QDateEdit, QDialog,
     QDialogButtonBox, QVBoxLayout, QGroupBox, QListWidget, QListWidgetItem,
     QPushButton, QHBoxLayout, QMainWindow, QAction, QApplication, QComboBox,
-    QTableWidget, QTableWidgetItem, QHeaderView)
+    QTableWidget, QTableWidgetItem, QHeaderView, QDateTimeEdit)
 import peewee
 
 
@@ -135,6 +135,7 @@ class Validation:
     CHAR = 'char'
     INTEGER = 'int'
     DATE = 'date'
+    DATETIME = 'datetime'
     DECIMAL = 'decimal'
 
     def __init__(self, max_lenght=225, required=True, field_type=CHAR):
@@ -342,6 +343,52 @@ class QDecimalEdit(QLineEdit, Validation, Ordered):
             if self.field_type == self.DECIMAL and not self.is_float(value):
                 return False
         return True
+
+
+class QDateTimeWithCalendarEdit(QDateTimeEdit, Validation, Ordered):
+    def __init__(self, required=True, column_name=None, parent=None):
+        Ordered.__init__(self)
+        QDateEdit.__init__(self, parent=parent)
+        Validation.__init__(self, required=required,
+                            field_type=Validation.DATETIME)
+        self.column_name = column_name
+        self.clear()
+        self.setCalendarPopup(True)
+
+    def null_date(self):
+        if self.dateTime() == self.minimumDateTime():
+            return None
+        return self.dateTime()
+
+    def set_valor(self, valor):
+        self.validates(valor)
+        if valor is not None:
+            self.setDateTime(valor)
+        else:
+            self.setDateTime(self.minimumDateTime())
+            self.destaca()
+
+    def clear(self):
+        self.setDateTime(self.minimumDateTime())
+        self.setSpecialValueText(" ")
+
+    def is_null(self):
+        if self.null_date() is None:
+            return True
+        return False
+
+    def get_valor(self):
+        if not self.is_null():
+            return self.null_date().toString('yyyy-MM-dd hh:mm')
+        return None
+
+    def keyPressEvent(self, event):
+        if self.is_null():
+            self.set_valor(QDateTime.currentDateTime())
+            self.setSelectedSection(QDateEdit.DaySection)
+        QDateTimeEdit.keyPressEvent(self, event)
+        if event.key() == Qt.Key_Delete:
+            self.clear()
 
 
 class QDateWithCalendarEdit(QDateEdit, Validation, Ordered):

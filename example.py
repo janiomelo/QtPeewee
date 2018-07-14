@@ -1,7 +1,9 @@
 from qtpeewee import (
     QFormulario, QCharEdit, QFormDialog, QDateWithCalendarEdit, QTableDialog,
-    QResultList, QListDialog, QFkComboBox, QResultTable, run, app, QSearchForm)
-from peewee import Model, CharField, DateField, ForeignKeyField, fn
+    QResultList, QListDialog, QFkComboBox, QResultTable, run, app, QSearchForm,
+    QDateTimeWithCalendarEdit)
+from peewee import (
+    Model, CharField, DateField, ForeignKeyField, fn, DateTimeField)
 
 
 class BaseModel(Model):
@@ -19,6 +21,7 @@ class Tipo(BaseModel):
 class Cliente(BaseModel):
     nome = CharField()
     email = CharField()
+    entrada = DateTimeField()
     tipo = ForeignKeyField(Tipo)
 
 
@@ -53,6 +56,7 @@ class FormularioCliente(QFormulario):
         self.tipo = QFkComboBox(
             entity=Tipo, column_name='tipo', form_new=TipoDialog,
             form_edit=TipoDialog)
+        self.entrada = QDateTimeWithCalendarEdit(column_name='entrada')
 
 
 class ClienteDialog(QFormDialog):
@@ -121,7 +125,7 @@ class ClientesList(QResultTable):
 
     def columns(self):
         return [
-            Cliente.id, Cliente.nome,
+            Cliente.id, Cliente.nome, Cliente.entrada,
             Cliente.email, (Cliente.tipo, 'descricao')
         ]
 
