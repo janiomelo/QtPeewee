@@ -546,6 +546,13 @@ class QFormDialog(QDialog, Centralize):
 
         self.instancia_formulario = self.form.get(objeto)
         self.center()
+        self.add_buttons()
+
+    def add_buttons(self):
+        pass
+
+    def buttons(self):
+        return []
 
     @property
     def form(self):
