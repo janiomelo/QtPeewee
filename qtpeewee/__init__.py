@@ -428,7 +428,8 @@ class QFormulario(QFormLayout):
     def __init__(self, objeto=None, has_id=True):
         super(QFormulario, self).__init__()
         app.count_field = 0
-        if has_id:
+        self.__has_id = has_id
+        if self.__has_id:
             self.id = QHiddenEdit(column_name='id')
         self.objeto = objeto
 
@@ -528,16 +529,16 @@ class QFormDialog(QDialog, Centralize):
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
+        self.pk = pk
 
         mainLayout = QVBoxLayout()
         mainLayout.addWidget(self.formGroupBox)
+        self.add_buttons(mainLayout)
         mainLayout.addWidget(self.buttonBox)
         self.setLayout(mainLayout)
 
         self.setWindowTitle("Formulário")
         self.setGeometry(100, 100, 600, 400)
-
-        self.pk = pk
 
         try:
             objeto = self.form.ENTIDADE.get_by_id(self.pk)
@@ -546,10 +547,25 @@ class QFormDialog(QDialog, Centralize):
 
         self.instancia_formulario = self.form.get(objeto)
         self.center()
-        self.add_buttons()
 
-    def add_buttons(self):
-        pass
+    def add_buttons(self, mainLayout):
+        if len(self.buttons()) == 0:
+            return
+        w = QWidget()
+        btn_layout = QHBoxLayout()
+        for b in self.buttons():
+            if b['condition'] is None or b['condition']:
+                add_button = QPushButton(b['label'])
+                add_button.clicked.connect(
+                    lambda: self.action(b['form'], b['pk']))
+                # add_button.setFixedWidth(25)
+                btn_layout.addWidget(add_button)
+        w.setLayout(btn_layout)
+        mainLayout.addWidget(w)
+
+    def action(self, form, pk):
+        f = form(pk)
+        f.exec()
 
     def buttons(self):
         return []

@@ -74,6 +74,19 @@ class FormularioFuncionario(QFormulario):
 class FuncionarioDialog(QFormDialog):
     FORMULARIO = FormularioFuncionario
 
+    def buttons(self):
+        return [{
+            "label": "Tipo",
+            "form": TipoDialog,
+            "pk": self.pk,
+            "condition": None
+        }, {
+            "label": "Funcionário",
+            "form": FuncionarioDialog,
+            "pk": None,
+            "condition": self.pk is not None
+        }]
+
 
 # -----------------------------------------------------------------------------
 
