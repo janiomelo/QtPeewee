@@ -39,6 +39,7 @@ class FormularioTipo(QFormulario):
 
 class TipoDialog(QFormDialog):
     FORMULARIO = FormularioTipo
+    TITLE = 'Editar Tipo'
 
 
 class FormularioCliente(QFormulario):
@@ -56,6 +57,7 @@ class FormularioCliente(QFormulario):
 
 class ClienteDialog(QFormDialog):
     FORMULARIO = FormularioCliente
+    TITLE = 'Editar Cliente'
 
 
 class FormularioFuncionario(QFormulario):
@@ -73,6 +75,7 @@ class FormularioFuncionario(QFormulario):
 
 class FuncionarioDialog(QFormDialog):
     FORMULARIO = FormularioFuncionario
+    TITLE = 'Editar Funcionário'
 
     def buttons(self):
         return [{
@@ -126,6 +129,7 @@ class ClientesList(QResultTable):
 class ClientesListDialog(QTableDialog):
     LIST = ClientesList
     FORM_FILTER = ClientesFilterForm
+    TITLE = 'Lista de clientes'
 
 # -----------------------------------------------------------------------------
 
@@ -162,6 +166,7 @@ class FuncionariosList(QResultList):
 class FuncionariosListDialog(QListDialog):
     LIST = FuncionariosList
     FORM_FILTER = FuncionarioFilterForm
+    TITLE = 'Lista de funcionários'
 
 # -----------------------------------------------------------------------------
 
@@ -193,6 +198,7 @@ class TiposList(QResultList):
 class TiposListDialog(QListDialog):
     LIST = TiposList
     FORM_FILTER = TiposFilterForm
+    TITLE = 'Lista de tipos'
 
 
 def abrir_cliente(e):

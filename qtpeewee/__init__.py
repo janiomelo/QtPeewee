@@ -519,6 +519,7 @@ class QSearchForm(QFormulario):
 
 class QFormDialog(QDialog, Centralize):
     FORMULARIO = QFormulario
+    TITLE = 'FORM EDIT'
 
     def __init__(self, pk=None):
         super(QFormDialog, self).__init__()
@@ -537,7 +538,7 @@ class QFormDialog(QDialog, Centralize):
         mainLayout.addWidget(self.buttonBox)
         self.setLayout(mainLayout)
 
-        self.setWindowTitle("Formulário")
+        self.setWindowTitle(self.TITLE)
         self.setGeometry(100, 100, 600, 400)
 
         try:
@@ -610,7 +611,7 @@ class QFormDialog(QDialog, Centralize):
         form.objeto.save()
 
     def createFormGroupBox(self):
-        self.formGroupBox = QGroupBox("Form layout")
+        self.formGroupBox = QGroupBox("")
 
     def set_layout_default(self, layout):
         self.formGroupBox.setLayout(layout)
@@ -699,21 +700,20 @@ class QResultList(QListWidget):
 class QListDialog(QDialog, Centralize):
     LIST = QResultList
     FORM_FILTER = None
+    TITLE = 'LIST'
 
     def __init__(self):
         super(QListDialog, self).__init__()
         super(Centralize, self).__init__()
         self.instancia_filtro = None
         self.setGeometry(100, 100, 600, 400)
-        self.setWindowTitle("Lista")
+        self.setWindowTitle(self.TITLE)
         window_layout = QVBoxLayout()
         if self.form_filter is not None:
             window_layout.addWidget(self.adiciona_filtro())
             button_save = QPushButton('Filtrar')
             button_save.clicked.connect(self.filtrar)
             window_layout.addWidget(button_save)
-        title = QLabel("Exibe resultado da consulta")
-        window_layout.addWidget(title)
         actions = self.adiciona_botoes()
         window_layout.addWidget(actions)
         self.instancia_lista = self.lista(self)
@@ -866,12 +866,13 @@ class QResultTable(QTableWidget):
 class QTableDialog(QListDialog, Centralize):
     LIST = QResultTable
     FORM_FILTER = None
+    TITLE = 'TABLE'
 
     def __init__(self):
         super(QTableDialog, self).__init__()
         super(Centralize, self).__init__()
         self.setGeometry(100, 100, 600, 400)
-        self.setWindowTitle("Tabela")
+        self.setWindowTitle(self.TITLE)
         self.center()
 
     def keyPressEvent(self, event):
@@ -879,9 +880,6 @@ class QTableDialog(QListDialog, Centralize):
             self.instancia_lista.update_result_set()
         else:
             super(QTableDialog, self).keyPressEvent(event)
-
-
-
 
 
 class User(peewee.Model):
