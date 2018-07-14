@@ -19,6 +19,10 @@ def empty(str_test):
     return str_test is None or len(str(str_test).replace(' ', '')) == 0
 
 
+def title_label(label):
+    return label.title().replace('_', ' ')
+
+
 class Centralize:
     def center(self):
         frameGm = self.frameGeometry()
@@ -435,7 +439,7 @@ class QFormulario(QFormLayout):
     def _constroi(self):
         itens = sorted(
             self.__dict__.items(),
-            key=lambda k: k[1].order if k[1] is not None else 0)
+            key=lambda k: k[1].order if isinstance(k[1], Ordered) else 0)
         for k, v in itens:
             self.add_field_in_row(k, v)
 
@@ -457,7 +461,7 @@ class QFormulario(QFormLayout):
                 field = QFieldWithActionsButton(f)
                 field.add_button(
                     self.clear_date, icon=u"\u2716", field_param=True)
-            self.addRow(QLabel(name), field)
+            self.addRow(QLabel(title_label(name)), field)
 
     def novo(self, field):
         form = field.form_new()
