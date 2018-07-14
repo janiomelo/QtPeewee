@@ -169,6 +169,8 @@ class QFkComboBox(QComboBox, Validation):
     def update_values(self):
         self.clear()
         self.values = []
+        if not self.required:
+            self.addItem('')
         for i in self.get_all():
             self.values.append(i)
             self.addItem(self.get_value(i))
