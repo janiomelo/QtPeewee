@@ -220,6 +220,7 @@ if __name__ == '__main__':
     Tipo.create_table()
     Cliente.create_table()
     Funcionario.create_table()
+    app.set_title('Aplicação de Exemplo')
 
     clienteMenu = app.formPrincipal.new_menu('&Clientes')
     app.formPrincipal.new_action(

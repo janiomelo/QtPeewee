@@ -94,6 +94,9 @@ class QPeeweeApp(QApplication):
         self.__db = db
         self.count_field = 0
 
+    def set_title(self, title):
+        self.formPrincipal.setWindowTitle(title)
+
     @property
     def db(self):
         return self.__db
