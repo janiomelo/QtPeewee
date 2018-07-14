@@ -341,9 +341,14 @@ class QSearchForm(QFormulario):
 
     def _constroi(self):
         for f in self.fields():
+            if f["type"] == QFkComboBox:
+                obj_field = f["type"](
+                    entity=f["entity"].rel_model, required=False)
+            else:
+                obj_field = f["type"](required=False)
             setattr(
                 self, f["entity"].name,
-                f["type"](required=False))
+                obj_field)
             f["field"] = getattr(self, f["entity"].name)
             if "label" in f.keys():
                 label = f["label"]

@@ -12,6 +12,9 @@ class BaseModel(Model):
 class Tipo(BaseModel):
     descricao = CharField()
 
+    def __str__(self):
+        return str(self.descricao)
+
 
 class Cliente(BaseModel):
     nome = CharField()
@@ -80,9 +83,9 @@ class ClientesFilterForm(QSearchForm):
             "operator": "%",
             "label": "Cliente"
         }, {
-            "entity": Cliente.tipo.descricao,
-            "type": QCharEdit,
-            "operator": "%",
+            "entity": Cliente.tipo,
+            "type": QFkComboBox,
+            "operator": "=",
             "label": "Tipo"
         }]
 
