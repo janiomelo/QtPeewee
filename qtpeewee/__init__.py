@@ -19,6 +19,89 @@ def empty(str_test):
     return str_test is None or len(str(str_test).replace(' ', '')) == 0
 
 
+class Centralize:
+    def center(self):
+        frameGm = self.frameGeometry()
+        screen = QApplication.desktop().screenNumber(
+            QApplication.desktop().cursor().pos())
+        centerPoint = QApplication.desktop().screenGeometry(screen).center()
+        frameGm.moveCenter(centerPoint)
+        self.move(frameGm.topLeft())
+
+
+class QPrincipal(QMainWindow, Centralize):
+    def __init__(self):
+        super(QPrincipal, self).__init__()
+        super(Centralize, self).__init__()
+        self.import_env_vars()
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
+        locale.setlocale(locale.LC_ALL, self.env('locale'))
+        self.initUI()
+
+    def import_env_vars(self):
+        data = None
+        with open('environment.json') as f:
+            data = json.load(f)
+        self.__env_vars = data
+
+    def env(self, key):
+        if self.__env_vars is None:
+            raise Exception("Environment variables not defined.")
+        if key not in self.__env_vars.keys():
+            raise Exception("Key '{0}' not defined.".format(key))
+        return self.__env_vars[key]
+
+    def new_menu(self, label: str):
+        return self.menubar.addMenu(label)
+
+    def new_action(
+            self, parent, text, event, icon=None, tinytxt=None, tip=None):
+        if icon is not None:
+            exitAction = QAction(icon, text, self)
+        else:
+            exitAction = QAction(text, self)
+        if tinytxt is not None:
+            exitAction.setShortcut(tinytxt)
+        if tip is not None:
+            exitAction.setStatusTip(tip)
+        exitAction.triggered.connect(event)
+        parent.addAction(exitAction)
+
+    def initUI(self, icon=None):
+        self.menubar = self.menuBar()
+        fileMenu = self.new_menu('&Arquivo')
+        self.new_action(
+            fileMenu, '&Sair', self.close, icon=QIcon('exit.png'),
+            tinytxt='Ctrl+Q', tip='Sair da aplicação.')
+        self.statusBar().showMessage('Ready')
+        # x, y, w, h
+        self.setGeometry(100, 100, 800, 600)
+        self.setWindowTitle('### DEFINIR ###')
+        self.center()
+        self.show()
+
+
+class QPeeweeApp(QApplication):
+    PRINCIPAL_FORM = QPrincipal
+
+    def __init__(self, argv, db):
+        QApplication.__init__(self, argv)
+        self.__principal = self.PRINCIPAL_FORM()
+        self.__db = db
+        self.count_field = 0
+
+    @property
+    def db(self):
+        return self.__db
+
+    @property
+    def formPrincipal(self):
+        return self.__principal
+
+
+app = QPeeweeApp(sys.argv, peewee.SqliteDatabase('app.db'))
+
+
 class ImplementationError(RuntimeError):
     pass
 
@@ -39,16 +122,6 @@ def notifica_erro(text, title):
 def notifica_confirmacao(text, title):
     return notifica(
         text, title, QMessageBox.Question, QMessageBox.Yes | QMessageBox.No)
-
-
-class Centralize:
-    def center(self):
-        frameGm = self.frameGeometry()
-        screen = QApplication.desktop().screenNumber(
-            QApplication.desktop().cursor().pos())
-        centerPoint = QApplication.desktop().screenGeometry(screen).center()
-        frameGm.moveCenter(centerPoint)
-        self.move(frameGm.topLeft())
 
 
 class Validation:
@@ -96,9 +169,16 @@ class Validation:
             self.destaca()
 
 
-class QCharEdit(QLineEdit, Validation):
+class Ordered:
+    def __init__(self):
+        self.order = app.count_field
+        app.count_field += 1
+
+
+class QCharEdit(QLineEdit, Validation, Ordered):
     def __init__(self, max_lenght=225, required=True, column_name=None,
                  parent=None):
+        Ordered.__init__(self)
         QLineEdit.__init__(self, parent=parent)
         Validation.__init__(self, max_lenght=max_lenght, required=required)
         self.column_name = column_name
@@ -127,8 +207,9 @@ class QCharEdit(QLineEdit, Validation):
         super(QCharEdit, self).focusOutEvent(event)
 
 
-class QIntEdit(QLineEdit, Validation):
+class QIntEdit(QLineEdit, Validation, Ordered):
     def __init__(self, required=True, column_name=None, parent=None):
+        Ordered.__init__(self)
         QLineEdit.__init__(self, parent=parent)
         Validation.__init__(self, required=required,
                             field_type=Validation.INTEGER)
@@ -152,10 +233,11 @@ class QIntEdit(QLineEdit, Validation):
         return True
 
 
-class QFkComboBox(QComboBox, Validation):
+class QFkComboBox(QComboBox, Validation, Ordered):
     def __init__(
             self, entity, required=True, column_name=None, parent=None,
             form_new=None, form_edit=None, field_type=Validation.INTEGER):
+        Ordered.__init__(self)
         QComboBox.__init__(self, parent=parent)
         Validation.__init__(self, required=required, field_type=field_type)
         self.column_name = column_name
@@ -197,10 +279,11 @@ class QFkComboBox(QComboBox, Validation):
             return None
 
 
-class QRegExpEdit(QLineEdit, Validation):
+class QRegExpEdit(QLineEdit, Validation, Ordered):
     def __init__(
             self, regex, required=True, column_name=None,
             parent=None):
+        Ordered.__init__(self)
         QLineEdit.__init__(self, parent=parent)
         Validation.__init__(
             self, required=required, field_type=Validation.CHAR)
@@ -223,10 +306,11 @@ class QRegExpEdit(QLineEdit, Validation):
         return False
 
 
-class QDecimalEdit(QLineEdit, Validation):
+class QDecimalEdit(QLineEdit, Validation, Ordered):
     def __init__(
             self, decimals=2, required=True, column_name=None,
             parent=None):
+        Ordered.__init__(self)
         QLineEdit.__init__(self, parent=parent)
         Validation.__init__(self, required=required,
                             field_type=Validation.DECIMAL)
@@ -253,8 +337,9 @@ class QDecimalEdit(QLineEdit, Validation):
         return True
 
 
-class QDateWithCalendarEdit(QDateEdit, Validation):
+class QDateWithCalendarEdit(QDateEdit, Validation, Ordered):
     def __init__(self, required=True, column_name=None, parent=None):
+        Ordered.__init__(self)
         QDateEdit.__init__(self, parent=parent)
         Validation.__init__(self, required=required,
                             field_type=Validation.DATE)
@@ -298,8 +383,9 @@ class QDateWithCalendarEdit(QDateEdit, Validation):
             self.clear()
 
 
-class QHiddenEdit(QLineEdit):
+class QHiddenEdit(QLineEdit, Ordered):
     def __init__(self, parent=None, column_name=None):
+        Ordered.__init__(self)
         QLineEdit.__init__(self, parent=parent)
         self.column_name = column_name
         self.hide()
@@ -337,6 +423,7 @@ class QFormulario(QFormLayout):
 
     def __init__(self, objeto=None, has_id=True):
         super(QFormulario, self).__init__()
+        app.count_field = 0
         if has_id:
             self.id = QHiddenEdit(column_name='id')
         self.objeto = objeto
@@ -346,7 +433,10 @@ class QFormulario(QFormLayout):
             return self.objeto.__dict__['__data__'].get(campo)
 
     def _constroi(self):
-        for k, v in self.__dict__.items():
+        itens = sorted(
+            self.__dict__.items(),
+            key=lambda k: k[1].order if k[1] is not None else 0)
+        for k, v in itens:
             self.add_field_in_row(k, v)
 
     def add_field_in_row(self, name, field):
@@ -764,76 +854,7 @@ class QTableDialog(QListDialog, Centralize):
             super(QTableDialog, self).keyPressEvent(event)
 
 
-class QPrincipal(QMainWindow, Centralize):
-    def __init__(self):
-        super(QPrincipal, self).__init__()
-        super(Centralize, self).__init__()
-        self.import_env_vars()
-        self.setAttribute(Qt.WA_DeleteOnClose, True)
-        locale.setlocale(locale.LC_ALL, self.env('locale'))
-        self.initUI()
 
-    def import_env_vars(self):
-        data = None
-        with open('environment.json') as f:
-            data = json.load(f)
-        self.__env_vars = data
-
-    def env(self, key):
-        if self.__env_vars is None:
-            raise Exception("Environment variables not defined.")
-        if key not in self.__env_vars.keys():
-            raise Exception("Key '{0}' not defined.".format(key))
-        return self.__env_vars[key]
-
-    def new_menu(self, label: str):
-        return self.menubar.addMenu(label)
-
-    def new_action(
-            self, parent, text, event, icon=None, tinytxt=None, tip=None):
-        if icon is not None:
-            exitAction = QAction(icon, text, self)
-        else:
-            exitAction = QAction(text, self)
-        if tinytxt is not None:
-            exitAction.setShortcut(tinytxt)
-        if tip is not None:
-            exitAction.setStatusTip(tip)
-        exitAction.triggered.connect(event)
-        parent.addAction(exitAction)
-
-    def initUI(self, icon=None):
-        self.menubar = self.menuBar()
-        fileMenu = self.new_menu('&Arquivo')
-        self.new_action(
-            fileMenu, '&Sair', self.close, icon=QIcon('exit.png'),
-            tinytxt='Ctrl+Q', tip='Sair da aplicação.')
-        self.statusBar().showMessage('Ready')
-        # x, y, w, h
-        self.setGeometry(100, 100, 800, 600)
-        self.setWindowTitle('### DEFINIR ###')
-        self.center()
-        self.show()
-
-
-class QPeeweeApp(QApplication):
-    PRINCIPAL_FORM = QPrincipal
-
-    def __init__(self, argv, db):
-        QApplication.__init__(self, argv)
-        self.__principal = self.PRINCIPAL_FORM()
-        self.__db = db
-
-    @property
-    def db(self):
-        return self.__db
-
-    @property
-    def formPrincipal(self):
-        return self.__principal
-
-
-app = QPeeweeApp(sys.argv, peewee.SqliteDatabase('app.db'))
 
 
 class User(peewee.Model):

@@ -51,7 +51,7 @@ class FormularioCliente(QFormulario):
         self.email = QCharEdit(column_name='email')
         self.tipo = QFkComboBox(
             entity=Tipo, column_name='tipo', form_new=TipoDialog,
-            form_view=TipoDialog)
+            form_edit=TipoDialog)
 
 
 class ClienteDialog(QFormDialog):
