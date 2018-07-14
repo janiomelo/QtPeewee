@@ -28,6 +28,19 @@ class Funcionario(BaseModel):
     tipo = ForeignKeyField(Tipo)
 
 
+class FormularioTipo(QFormulario):
+    ENTIDADE = Tipo
+
+    def __init__(self):
+        super(FormularioTipo, self).__init__()
+        self.descricao = QCharEdit(
+            column_name='descricao', max_lenght=100, required=True)
+
+
+class TipoDialog(QFormDialog):
+    FORMULARIO = FormularioTipo
+
+
 class FormularioCliente(QFormulario):
     ENTIDADE = Cliente
 
@@ -51,24 +64,12 @@ class FormularioFuncionario(QFormulario):
         self.nome = QCharEdit(
             column_name='nome', max_lenght=100, required=True)
         self.nascimento = QDateWithCalendarEdit(column_name='nascimento')
-        self.tipo = QFkComboBox(entity=Tipo, column_name='tipo')
+        self.tipo = QFkComboBox(
+            entity=Tipo, column_name='tipo', form_new=TipoDialog)
 
 
 class FuncionarioDialog(QFormDialog):
     FORMULARIO = FormularioFuncionario
-
-
-class FormularioTipo(QFormulario):
-    ENTIDADE = Tipo
-
-    def __init__(self):
-        super(FormularioTipo, self).__init__()
-        self.descricao = QCharEdit(
-            column_name='descricao', max_lenght=100, required=True)
-
-
-class TipoDialog(QFormDialog):
-    FORMULARIO = FormularioTipo
 
 
 # -----------------------------------------------------------------------------

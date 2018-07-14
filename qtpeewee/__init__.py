@@ -155,12 +155,13 @@ class QIntEdit(QLineEdit, Validation):
 class QFkComboBox(QComboBox, Validation):
     def __init__(
             self, entity, required=True, column_name=None, parent=None,
-            field_type=Validation.INTEGER):
+            form_new=None, field_type=Validation.INTEGER):
         QComboBox.__init__(self, parent=parent)
         Validation.__init__(self, required=required, field_type=field_type)
         self.column_name = column_name
         self.entity = entity
         self.values = []
+        self.form_new = form_new
         self.update_values()
 
     def get_all(self):
@@ -329,7 +330,23 @@ class QFormulario(QFormLayout):
                 valor = self.__valor_campo(v.column_name)
                 if valor is not None:
                     v.set_valor(valor)
+                if isinstance(v, QFkComboBox) and v.form_new is not None:
+                    campo = v
+                    v = QWidget()
+                    v_layout = QHBoxLayout()
+                    v_layout.addWidget(campo)
+                    add_button = QPushButton('+')
+                    add_button.clicked.connect(
+                        lambda: self.novo(campo))
+                    v_layout.addWidget(add_button)
+                    v.setLayout(v_layout)
+                    v.column_name = campo.column_name
                 self.addRow(QLabel(v.column_name), v)
+
+    def novo(self, campo):
+        form = campo.form_new()
+        form.buttonBox.accepted.connect(campo.update_values)
+        form.exec()
 
     @classmethod
     def get(cls, objeto=None):
