@@ -6,7 +6,7 @@ import unittest
 from PyQt5.QtCore import Qt
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication
-from QPeewee import (
+from qtpeewee import (
     QCharEdit, QDateWithCalendarEdit, QIntEdit, QHiddenEdit, MyQListWidgetItem,
     QFormulario, QDialogButtonBox, QDecimalEdit, QRegExpEdit, QFormDialog,
     QResultList)
@@ -185,7 +185,7 @@ class QDateWithCalendarEditTest(unittest.TestCase):
     def test_nao_obrigatorio_aceita_nulo(self):
         widget = QDateWithCalendarEdit(required=False)
         widget.set_valor(None)
-        self.assertEqual(widget.get_valor(), '1910-01-01')
+        self.assertEqual(widget.get_valor(), None)
 
 
 class QHiddenEditTest(unittest.TestCase):

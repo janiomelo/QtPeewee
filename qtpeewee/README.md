@@ -3,8 +3,10 @@
 ## TODO
 
 - [x] FK
-- [ ] Lista (working)
-- [ ] Login 
+- [ ] Filtros
+- [ ] Lista
+- [ ] RegExprField
+- [ ] Login
 - [ ] Validações
 - [ ] Testes (melhorar os de data)
 - [ ] Campos calculados

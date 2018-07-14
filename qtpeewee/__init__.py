@@ -19,6 +19,10 @@ def empty(str_test):
     return str_test is None or len(str(str_test).replace(' ', '')) == 0
 
 
+class ImplementationError(RuntimeError):
+    pass
+
+
 def notifica(text, title, icon, buttons):
     msg = QMessageBox()
     msg.setIcon(icon)
@@ -251,16 +255,40 @@ class QDateWithCalendarEdit(QDateEdit, Validation):
         self.clear()
         self.setCalendarPopup(True)
 
+    def null_date(self):
+        if self.date() == self.minimumDate():
+            return None
+        return self.date()
+
     def set_valor(self, valor):
         self.validates(valor)
         if valor is not None:
             self.setDate(valor)
         else:
-            self.setDate(QDate(1910, 1, 1))
+            self.setDate(self.minimumDate())
             self.destaca()
 
+    def clear(self):
+        self.setDate(self.minimumDate())
+        self.setSpecialValueText(" ")
+
+    def is_null(self):
+        if self.null_date() is None:
+            return True
+        return False
+
     def get_valor(self):
-        return self.date().toString('yyyy-MM-dd')
+        if not self.is_null():
+            return self.null_date().toString('yyyy-MM-dd')
+        return None
+
+    def keyPressEvent(self, event):
+        if self.is_null():
+            self.set_valor(QDate.currentDate())
+            self.setSelectedSection(QDateEdit.DaySection)
+        QDateEdit.keyPressEvent(self, event)
+        if event.key() == Qt.Key_Delete:
+            self.clear()
 
 
 class QHiddenEdit(QLineEdit):
@@ -279,16 +307,17 @@ class QHiddenEdit(QLineEdit):
 class QFormulario(QFormLayout):
     ENTIDADE = None
 
-    def __init__(self, objeto=None):
+    def __init__(self, objeto=None, has_id=True):
         super(QFormulario, self).__init__()
-        self.id = QHiddenEdit(column_name='id')
+        if has_id:
+            self.id = QHiddenEdit(column_name='id')
         self.objeto = objeto
 
     def __valor_campo(self, campo):
         if self.objeto is not None:
             return self.objeto.__dict__['__data__'].get(campo)
 
-    def __constroi(self):
+    def _constroi(self):
         for k, v in self.__dict__.items():
             if (not isinstance(v, QHiddenEdit) and
                     isinstance(v, QWidget)):
@@ -301,8 +330,35 @@ class QFormulario(QFormLayout):
     def get(cls, objeto=None):
         b = cls()
         b.objeto = objeto
-        b.__constroi()
+        b._constroi()
         return b
+
+
+class QSearchForm(QFormulario):
+    def __init__(self):
+        super(QSearchForm, self).__init__(has_id=False)
+        self._filters = []
+
+    def _constroi(self):
+        for f in self.fields():
+            setattr(
+                self, f["entity"].name,
+                f["type"](required=False))
+            f["field"] = getattr(self, f["entity"].name)
+            if "label" in f.keys():
+                label = f["label"]
+            else:
+                label = '{0} {1}'.format(
+                    f["entity"].name, f["entity"].model._meta.table_name)
+            self.addRow(QLabel(label), f["field"])
+            self._filters.append(f)
+
+    @property
+    def filters(self):
+        return self._filters
+
+    def fields(self):
+        return []
 
 
 class QFormDialog(QDialog, Centralize):
@@ -409,6 +465,7 @@ class QResultList(QListWidget):
 
     def __init__(self, parent=None):
         QListWidget.__init__(self, parent=parent)
+        self.filtros = []
         self.update_result_set()
         self.itemClicked.connect(self.on_click)
         self.itemDoubleClicked.connect(self.on_double_click)
@@ -416,9 +473,28 @@ class QResultList(QListWidget):
     def get_all(self):
         return []
 
+    def order(self):
+        return None
+
+    def get_all_with_filter(self):
+        resultlist = self.get_all()
+        if len(self.filtros) > 0:
+            for f in self.filtros:
+                if (f["field"].get_valor() is None or
+                        f["field"].get_valor() == ''):
+                    continue
+                if f["operator"] == "%":
+                    w = (f["entity"].contains(f["field"].get_valor()))
+                elif f["operator"] == "=":
+                    w = (f["entity"] == f["field"].get_valor())
+                resultlist = resultlist.where(w)
+        if self.order() is not None:
+            resultlist = resultlist.order_by(self.order())
+        return resultlist
+
     def update_result_set(self):
         self.clear()
-        for item in self.get_all():
+        for item in self.get_all_with_filter():
             self.addItem(MyQListWidgetItem(self, objeto=item))
 
     def get_value(self, obj) -> str:
@@ -444,13 +520,20 @@ class QResultList(QListWidget):
 
 class QListDialog(QDialog, Centralize):
     LIST = QResultList
+    FORM_FILTER = None
 
     def __init__(self):
         super(QListDialog, self).__init__()
         super(Centralize, self).__init__()
+        self.instancia_filtro = None
         self.setGeometry(100, 100, 600, 400)
         self.setWindowTitle("Lista")
         window_layout = QVBoxLayout()
+        if self.form_filter is not None:
+            window_layout.addWidget(self.adiciona_filtro())
+            button_save = QPushButton('Filtrar')
+            button_save.clicked.connect(self.filtrar)
+            window_layout.addWidget(button_save)
         title = QLabel("Exibe resultado da consulta")
         window_layout.addWidget(title)
         actions = self.adiciona_botoes()
@@ -459,6 +542,16 @@ class QListDialog(QDialog, Centralize):
         window_layout.addWidget(self.instancia_lista)
         self.setLayout(window_layout)
         self.center()
+
+    def filtrar(self):
+        self.instancia_lista.filtros = self.instancia_filtro.filters
+        self.instancia_lista.update_result_set()
+
+    def adiciona_filtro(self):
+        gb_layout = QGroupBox("Filtro")
+        self.instancia_filtro = self.form_filter.get(None)
+        gb_layout.setLayout(self.instancia_filtro)
+        return gb_layout
 
     def adiciona_botoes(self):
         actions = QWidget()
@@ -501,6 +594,10 @@ class QListDialog(QDialog, Centralize):
     def lista(self):
         return self.LIST
 
+    @property
+    def form_filter(self):
+        return self.FORM_FILTER
+
 
 class QResultTable(QTableWidget):
     FORM = QFormDialog
@@ -510,12 +607,29 @@ class QResultTable(QTableWidget):
         self.itemClicked.connect(self.on_click)
         self.itemDoubleClicked.connect(self.on_double_click)
         self.values = None
+        self.filtros = []
         self.update_result_set()
         self.verticalHeader().hide()
         self.show()
 
     def get_all(self):
         return []
+
+    def get_all_with_filter(self):
+        resultlist = self.get_all()
+        if len(self.filtros) > 0:
+            for f in self.filtros:
+                if (f["field"].get_valor() is None or
+                        f["field"].get_valor() == ''):
+                    continue
+                if f["operator"] == "%":
+                    w = (f["entity"].contains(f["field"].get_valor()))
+                elif f["operator"] == "=":
+                    w = (f["entity"] == f["field"].get_valor())
+                resultlist = resultlist.where(w)
+        if self.order() is not None:
+            resultlist = resultlist.order_by(self.order())
+        return resultlist
 
     def columns(self):
         return []
@@ -524,12 +638,13 @@ class QResultTable(QTableWidget):
         header = self.horizontalHeader()
         labels = []
         for i, c in enumerate(self.columns()):
-            labels.append(c.column_name)
+            label = c[0].name if isinstance(c, tuple) else c.name
+            labels.append(label.title())
             header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
         self.setHorizontalHeaderLabels(labels)
 
     def update_result_set(self):
-        self.values = self.get_all()
+        self.values = self.get_all_with_filter()
         self.clear()
         self.setColumnCount(len(self.columns()))
         self.setRowCount(self.values.count())
@@ -539,8 +654,10 @@ class QResultTable(QTableWidget):
             # self.insertRow(numRows)
             i = 0
             for column in self.columns():
-                if not column.model == self.values.model:
-                    txt = item.tipo.descricao
+                if isinstance(column, tuple):
+                    fk_id = getattr(item, column[0].column_name)
+                    fk_obj = column[0].rel_model.get_by_id(fk_id)
+                    txt = str(getattr(fk_obj, column[1]))
                 else:
                     txt = str(getattr(item, column.column_name))
                 self.setItem(numRows, i, QTableWidgetItem(txt))
@@ -570,6 +687,7 @@ class QResultTable(QTableWidget):
 
 class QTableDialog(QListDialog, Centralize):
     LIST = QResultTable
+    FORM_FILTER = None
 
     def __init__(self):
         super(QTableDialog, self).__init__()

@@ -1,6 +1,6 @@
-from QPeewee import (
+from qtpeewee import (
     QFormulario, QCharEdit, QFormDialog, QDateWithCalendarEdit, QTableDialog,
-    QResultList, QListDialog, QFkComboBox, QResultTable, run, app)
+    QResultList, QListDialog, QFkComboBox, QResultTable, run, app, QSearchForm)
 from peewee import Model, CharField, DateField, ForeignKeyField, fn
 
 
@@ -11,9 +11,6 @@ class BaseModel(Model):
 
 class Tipo(BaseModel):
     descricao = CharField()
-
-    def __str__(self):
-        return self.descricao
 
 
 class Cliente(BaseModel):
@@ -73,26 +70,60 @@ class TipoDialog(QFormDialog):
 
 # -----------------------------------------------------------------------------
 
+
+class ClientesFilterForm(QSearchForm):
+
+    def fields(self):
+        return [{
+            "entity": Cliente.nome,
+            "type": QCharEdit,
+            "operator": "%",
+            "label": "Cliente"
+        }, {
+            "entity": Cliente.tipo.descricao,
+            "type": QCharEdit,
+            "operator": "%",
+            "label": "Tipo"
+        }]
+
+
 class ClientesList(QResultTable):
     FORM = ClienteDialog
 
-    def get_value(self, obj):
-        return obj.nome
+    def order(self):
+        return fn.lower(Cliente.nome)
 
     def get_all(self):
-        return Cliente.select().join(
-            Tipo, on=Tipo.id == Cliente.tipo).order_by(fn.lower(Cliente.nome))
+        return Cliente.select().join(Tipo)
 
     def columns(self):
         return [
-            Cliente.id, Cliente.nome, Cliente.email, Tipo.descricao
+            Cliente.id, Cliente.nome,
+            Cliente.email, (Cliente.tipo, 'descricao')
         ]
 
 
 class ClientesListDialog(QTableDialog):
     LIST = ClientesList
+    FORM_FILTER = ClientesFilterForm
 
 # -----------------------------------------------------------------------------
+
+
+class FuncionarioFilterForm(QSearchForm):
+
+    def fields(self):
+        return [{
+            "entity": Funcionario.nome,
+            "type": QCharEdit,
+            "operator": "%",
+            "label": "Nome"
+        }, {
+            "entity": Funcionario.nascimento,
+            "type": QDateWithCalendarEdit,
+            "operator": "=",
+            "label": "Dt. Nascimento"
+        }]
 
 
 class FuncionariosList(QResultList):
@@ -101,14 +132,29 @@ class FuncionariosList(QResultList):
     def get_value(self, obj):
         return obj.nome
 
+    def order(self):
+        return Funcionario.nome
+
     def get_all(self):
-        return Funcionario.select().order_by(Funcionario.nome)
+        return Funcionario.select()
 
 
 class FuncionariosListDialog(QListDialog):
     LIST = FuncionariosList
+    FORM_FILTER = FuncionarioFilterForm
 
 # -----------------------------------------------------------------------------
+
+
+class TiposFilterForm(QSearchForm):
+
+    def fields(self):
+        return [{
+            "entity": Tipo.descricao,
+            "type": QCharEdit,
+            "operator": "%",
+            "label": "Descrição"
+        }]
 
 
 class TiposList(QResultList):
@@ -117,12 +163,16 @@ class TiposList(QResultList):
     def get_value(self, obj):
         return obj.descricao
 
+    def order(self):
+        return Tipo.descricao
+
     def get_all(self):
-        return Tipo.select().order_by(Tipo.descricao)
+        return Tipo.select()
 
 
 class TiposListDialog(QListDialog):
     LIST = TiposList
+    FORM_FILTER = TiposFilterForm
 
 
 def abrir_cliente(e):
