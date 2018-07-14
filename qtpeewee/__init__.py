@@ -310,6 +310,20 @@ class QHiddenEdit(QLineEdit):
         return self.text()
 
 
+class QComboWithAddFormLayout(QHBoxLayout):
+    def __init__(self, add_func, *args, **kwargs):
+        super(QComboWithAddFormLayout, self).__init__(*args, **kwargs)
+        self.setSpacing(5)
+        self.setContentsMargins(0, 0, 0, 0)
+        add_button = QPushButton('+')
+        add_button.clicked.connect(add_func)
+        add_button.setFixedWidth(25)
+        self.insertWidget(1, add_button)
+
+    def fieldWidget(self, field):
+        self.insertWidget(0, field)
+
+
 class QFormulario(QFormLayout):
     ENTIDADE = None
 
@@ -333,12 +347,9 @@ class QFormulario(QFormLayout):
                 if isinstance(v, QFkComboBox) and v.form_new is not None:
                     campo = v
                     v = QWidget()
-                    v_layout = QHBoxLayout()
-                    v_layout.addWidget(campo)
-                    add_button = QPushButton('+')
-                    add_button.clicked.connect(
+                    v_layout = QComboWithAddFormLayout(
                         lambda: self.novo(campo))
-                    v_layout.addWidget(add_button)
+                    v_layout.fieldWidget(campo)
                     v.setLayout(v_layout)
                     v.column_name = campo.column_name
                 self.addRow(QLabel(v.column_name), v)
