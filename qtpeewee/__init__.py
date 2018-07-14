@@ -310,18 +310,23 @@ class QHiddenEdit(QLineEdit):
         return self.text()
 
 
-class QComboWithAddFormLayout(QHBoxLayout):
-    def __init__(self, add_func, *args, **kwargs):
-        super(QComboWithAddFormLayout, self).__init__(*args, **kwargs)
-        self.setSpacing(5)
-        self.setContentsMargins(0, 0, 0, 0)
-        add_button = QPushButton('+')
-        add_button.clicked.connect(add_func)
+class QFieldWithActionButton(QWidget):
+    def __init__(
+            self, field, func, icon=u"\u2795", field_param=False, *args,
+            **kwargs):
+        super(QFieldWithActionButton, self).__init__(*args, **kwargs)
+        layout = QHBoxLayout()
+        layout.setSpacing(5)
+        layout.setContentsMargins(0, 0, 0, 0)
+        add_button = QPushButton(icon)
+        if field_param:
+            add_button.clicked.connect(lambda: func(field))
+        else:
+            add_button.clicked.connect(func)
         add_button.setFixedWidth(25)
-        self.insertWidget(1, add_button)
-
-    def fieldWidget(self, field):
-        self.insertWidget(0, field)
+        layout.insertWidget(1, add_button)
+        layout.insertWidget(0, field)
+        self.setLayout(layout)
 
 
 class QFormulario(QFormLayout):
@@ -339,25 +344,32 @@ class QFormulario(QFormLayout):
 
     def _constroi(self):
         for k, v in self.__dict__.items():
-            if (not isinstance(v, QHiddenEdit) and
-                    isinstance(v, QWidget)):
-                valor = self.__valor_campo(v.column_name)
-                if valor is not None:
-                    v.set_valor(valor)
-                if isinstance(v, QFkComboBox) and v.form_new is not None:
-                    campo = v
-                    v = QWidget()
-                    v_layout = QComboWithAddFormLayout(
-                        lambda: self.novo(campo))
-                    v_layout.fieldWidget(campo)
-                    v.setLayout(v_layout)
-                    v.column_name = campo.column_name
-                self.addRow(QLabel(v.column_name), v)
+            self.add_field_in_row(k, v)
 
-    def novo(self, campo):
-        form = campo.form_new()
-        form.buttonBox.accepted.connect(campo.update_values)
+    def add_field_in_row(self, name, field):
+        if (not isinstance(field, QHiddenEdit) and
+                isinstance(field, QWidget)):
+            valor = self.__valor_campo(name)
+            if valor is not None:
+                field.set_valor(valor)
+            if isinstance(field, QFkComboBox) and field.form_new is not None:
+                f = field
+                field = QFieldWithActionButton(f, self.novo, field_param=True)
+                field.column_name = f.column_name
+            elif isinstance(field, QDateEdit):
+                f = field
+                field = QFieldWithActionButton(
+                    f, self.clear_date, icon=u"\u2716", field_param=True)
+                field.column_name = f.column_name
+            self.addRow(QLabel(name), field)
+
+    def novo(self, field):
+        form = field.form_new()
+        form.buttonBox.accepted.connect(field.update_values)
         form.exec()
+
+    def clear_date(self, field):
+        field.clear()
 
     @classmethod
     def get(cls, objeto=None):
@@ -388,7 +400,7 @@ class QSearchForm(QFormulario):
             else:
                 label = '{0} {1}'.format(
                     f["entity"].name, f["entity"].model._meta.table_name)
-            self.addRow(QLabel(label), f["field"])
+            self.add_field_in_row(label, f["field"])
             self._filters.append(f)
 
     @property
