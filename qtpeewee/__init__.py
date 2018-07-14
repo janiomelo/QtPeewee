@@ -155,13 +155,14 @@ class QIntEdit(QLineEdit, Validation):
 class QFkComboBox(QComboBox, Validation):
     def __init__(
             self, entity, required=True, column_name=None, parent=None,
-            form_new=None, field_type=Validation.INTEGER):
+            form_new=None, form_edit=None, field_type=Validation.INTEGER):
         QComboBox.__init__(self, parent=parent)
         Validation.__init__(self, required=required, field_type=field_type)
         self.column_name = column_name
         self.entity = entity
         self.values = []
         self.form_new = form_new
+        self.form_edit = form_edit
         self.update_values()
 
     def get_all(self):
@@ -310,23 +311,25 @@ class QHiddenEdit(QLineEdit):
         return self.text()
 
 
-class QFieldWithActionButton(QWidget):
+class QFieldWithActionsButton(QWidget):
     def __init__(
-            self, field, func, icon=u"\u2795", field_param=False, *args,
-            **kwargs):
-        super(QFieldWithActionButton, self).__init__(*args, **kwargs)
-        layout = QHBoxLayout()
-        layout.setSpacing(5)
-        layout.setContentsMargins(0, 0, 0, 0)
+            self, field, *args, **kwargs):
+        super(QFieldWithActionsButton, self).__init__(*args, **kwargs)
+        self.layout = QHBoxLayout()
+        self.layout.setSpacing(5)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.insertWidget(0, field)
+        self.field = field
+        self.setLayout(self.layout)
+
+    def add_button(self, action, icon=u"\u2795", field_param=False):
         add_button = QPushButton(icon)
         if field_param:
-            add_button.clicked.connect(lambda: func(field))
+            add_button.clicked.connect(lambda: action(self.field))
         else:
-            add_button.clicked.connect(func)
+            add_button.clicked.connect(action)
         add_button.setFixedWidth(25)
-        layout.insertWidget(1, add_button)
-        layout.insertWidget(0, field)
-        self.setLayout(layout)
+        self.layout.insertWidget(1, add_button)
 
 
 class QFormulario(QFormLayout):
@@ -354,17 +357,25 @@ class QFormulario(QFormLayout):
                 field.set_valor(valor)
             if isinstance(field, QFkComboBox) and field.form_new is not None:
                 f = field
-                field = QFieldWithActionButton(f, self.novo, field_param=True)
-                field.column_name = f.column_name
-            elif isinstance(field, QDateEdit):
+                field = QFieldWithActionsButton(f)
+                field.add_button(self.novo, field_param=True)
+                if f.form_edit is not None:
+                    field.add_button(
+                        self.edit, icon=u"\u270D", field_param=True)
+            if isinstance(field, QDateEdit):
                 f = field
-                field = QFieldWithActionButton(
-                    f, self.clear_date, icon=u"\u2716", field_param=True)
-                field.column_name = f.column_name
+                field = QFieldWithActionsButton(f)
+                field.add_button(
+                    self.clear_date, icon=u"\u2716", field_param=True)
             self.addRow(QLabel(name), field)
 
     def novo(self, field):
         form = field.form_new()
+        form.buttonBox.accepted.connect(field.update_values)
+        form.exec()
+
+    def edit(self, field):
+        form = field.form_edit(field.get_valor())
         form.buttonBox.accepted.connect(field.update_values)
         form.exec()
 

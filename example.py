@@ -49,7 +49,9 @@ class FormularioCliente(QFormulario):
         self.nome = QCharEdit(
             column_name='nome', max_lenght=100, required=True)
         self.email = QCharEdit(column_name='email')
-        self.tipo = QFkComboBox(entity=Tipo, column_name='tipo')
+        self.tipo = QFkComboBox(
+            entity=Tipo, column_name='tipo', form_new=TipoDialog,
+            form_view=TipoDialog)
 
 
 class ClienteDialog(QFormDialog):
@@ -65,7 +67,8 @@ class FormularioFuncionario(QFormulario):
             column_name='nome', max_lenght=100, required=True)
         self.nascimento = QDateWithCalendarEdit(column_name='nascimento')
         self.tipo = QFkComboBox(
-            entity=Tipo, column_name='tipo', form_new=TipoDialog)
+            entity=Tipo, column_name='tipo', form_new=TipoDialog,
+            form_edit=TipoDialog)
 
 
 class FuncionarioDialog(QFormDialog):
