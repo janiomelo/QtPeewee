@@ -552,15 +552,21 @@ class QFormDialog(QDialog, Centralize):
     def add_buttons(self, mainLayout):
         if len(self.buttons()) == 0:
             return
+        width = 30
         w = QWidget()
+        w.setFixedHeight(50)
         btn_layout = QHBoxLayout()
         for b in self.buttons():
             if b['condition'] is None or b['condition']:
+                width_btn = (len(b['label']) * 10)
+                width += width_btn
                 add_button = QPushButton(b['label'])
                 add_button.clicked.connect(
                     lambda: self.action(b['form'], b['pk']))
                 # add_button.setFixedWidth(25)
+                add_button.setFixedWidth(width_btn)
                 btn_layout.addWidget(add_button)
+        w.setFixedWidth(width)
         w.setLayout(btn_layout)
         mainLayout.addWidget(w)
 
