@@ -563,7 +563,6 @@ class QFormDialog(QDialog, Centralize):
                 add_button = QPushButton(b['label'])
                 add_button.clicked.connect(
                     lambda: self.action(b['form'], b['pk']))
-                # add_button.setFixedWidth(25)
                 add_button.setFixedWidth(width_btn)
                 btn_layout.addWidget(add_button)
         w.setFixedWidth(width)
