@@ -187,7 +187,10 @@ class QFkComboBox(QComboBox, Validation):
 
     def get_valor(self):
         try:
-            return self.values[self.currentIndex()]
+            i = self.currentIndex()
+            if not self.required:
+                i = i - 1 if i > 0 else 0
+            return self.values[i]
         except Exception:
             return None
 
