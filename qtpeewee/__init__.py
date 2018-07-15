@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QFormLayout, QWidget, QMessageBox, QDateEdit, QDialog,
     QDialogButtonBox, QVBoxLayout, QGroupBox, QListWidget, QListWidgetItem,
     QPushButton, QHBoxLayout, QMainWindow, QAction, QApplication, QComboBox,
-    QTableWidget, QTableWidgetItem, QHeaderView, QDateTimeEdit)
+    QTableWidget, QTableWidgetItem, QHeaderView, QDateTimeEdit, QGridLayout)
 import peewee
 
 
@@ -36,7 +36,9 @@ class Centralize:
             QApplication.desktop().cursor().pos())
         centerPoint = QApplication.desktop().screenGeometry(screen).center()
         frameGm.moveCenter(centerPoint)
-        self.move(frameGm.topLeft())
+        rect = frameGm.topLeft()
+        rect.setY(60)
+        self.move(rect)
 
 
 class QPrincipal(QMainWindow, Centralize):
@@ -183,16 +185,20 @@ class Validation:
             self.destaca()
 
 
-class Ordered:
-    def __init__(self):
+class BaseEdit:
+    def __init__(self, x=0, y=0, nx=1, ny=1):
         self.order = app.count_field
         app.count_field += 1
+        self.x = x
+        self.y = y
+        self.nx = nx
+        self.ny = ny
 
 
-class QCharEdit(QLineEdit, Validation, Ordered):
+class QCharEdit(QLineEdit, Validation, BaseEdit):
     def __init__(self, max_lenght=225, required=True, column_name=None,
-                 parent=None):
-        Ordered.__init__(self)
+                 parent=None, *args, **kwargs):
+        BaseEdit.__init__(self, *args, **kwargs)
         QLineEdit.__init__(self, parent=parent)
         Validation.__init__(self, max_lenght=max_lenght, required=required)
         self.column_name = column_name
@@ -221,9 +227,11 @@ class QCharEdit(QLineEdit, Validation, Ordered):
         super(QCharEdit, self).focusOutEvent(event)
 
 
-class QIntEdit(QLineEdit, Validation, Ordered):
-    def __init__(self, required=True, column_name=None, parent=None):
-        Ordered.__init__(self)
+class QIntEdit(QLineEdit, Validation, BaseEdit):
+    def __init__(
+            self, required=True, column_name=None,
+            parent=None, *args, **kwargs):
+        BaseEdit.__init__(self, *args, **kwargs)
         QLineEdit.__init__(self, parent=parent)
         Validation.__init__(self, required=required,
                             field_type=Validation.INTEGER)
@@ -247,11 +255,12 @@ class QIntEdit(QLineEdit, Validation, Ordered):
         return True
 
 
-class QFkComboBox(QComboBox, Validation, Ordered):
+class QFkComboBox(QComboBox, Validation, BaseEdit):
     def __init__(
             self, entity, required=True, column_name=None, parent=None,
-            form_new=None, form_edit=None, field_type=Validation.INTEGER):
-        Ordered.__init__(self)
+            form_new=None, form_edit=None, field_type=Validation.INTEGER,
+            *args, **kwargs):
+        BaseEdit.__init__(self, *args, **kwargs)
         QComboBox.__init__(self, parent=parent)
         Validation.__init__(self, required=required, field_type=field_type)
         self.column_name = column_name
@@ -293,9 +302,9 @@ class QFkComboBox(QComboBox, Validation, Ordered):
             return None
 
 
-class QChoicesComboBox(QComboBox, Validation, Ordered):
-    def __init__(self, field, parent=None):
-        Ordered.__init__(self)
+class QChoicesComboBox(QComboBox, Validation, BaseEdit):
+    def __init__(self, field, parent=None, *args, **kwargs):
+        BaseEdit.__init__(self, *args, **kwargs)
         QComboBox.__init__(self, parent=parent)
         Validation.__init__(
             self, required=not field.null, field_type=field.field_type)
@@ -331,11 +340,11 @@ class QChoicesComboBox(QComboBox, Validation, Ordered):
             return None
 
 
-class QRegExpEdit(QLineEdit, Validation, Ordered):
+class QRegExpEdit(QLineEdit, Validation, BaseEdit):
     def __init__(
             self, regex, required=True, column_name=None,
-            parent=None):
-        Ordered.__init__(self)
+            parent=None, *args, **kwargs):
+        BaseEdit.__init__(self, *args, **kwargs)
         QLineEdit.__init__(self, parent=parent)
         Validation.__init__(
             self, required=required, field_type=Validation.CHAR)
@@ -358,11 +367,11 @@ class QRegExpEdit(QLineEdit, Validation, Ordered):
         return False
 
 
-class QDecimalEdit(QLineEdit, Validation, Ordered):
+class QDecimalEdit(QLineEdit, Validation, BaseEdit):
     def __init__(
             self, decimals=2, required=True, column_name=None,
-            parent=None):
-        Ordered.__init__(self)
+            parent=None, *args, **kwargs):
+        BaseEdit.__init__(self, *args, **kwargs)
         QLineEdit.__init__(self, parent=parent)
         Validation.__init__(self, required=required,
                             field_type=Validation.DECIMAL)
@@ -389,9 +398,11 @@ class QDecimalEdit(QLineEdit, Validation, Ordered):
         return True
 
 
-class QDateTimeWithCalendarEdit(QDateTimeEdit, Validation, Ordered):
-    def __init__(self, required=True, column_name=None, parent=None):
-        Ordered.__init__(self)
+class QDateTimeWithCalendarEdit(QDateTimeEdit, Validation, BaseEdit):
+    def __init__(
+            self, required=True, column_name=None, parent=None, *args,
+            **kwargs):
+        BaseEdit.__init__(self, *args, **kwargs)
         QDateEdit.__init__(self, parent=parent)
         Validation.__init__(self, required=required,
                             field_type=Validation.DATETIME)
@@ -439,9 +450,11 @@ class QDateTimeWithCalendarEdit(QDateTimeEdit, Validation, Ordered):
             self.clear()
 
 
-class QDateWithCalendarEdit(QDateEdit, Validation, Ordered):
-    def __init__(self, required=True, column_name=None, parent=None):
-        Ordered.__init__(self)
+class QDateWithCalendarEdit(QDateEdit, Validation, BaseEdit):
+    def __init__(
+            self, required=True, column_name=None, parent=None, *args,
+            **kwargs):
+        BaseEdit.__init__(self, *args, **kwargs)
         QDateEdit.__init__(self, parent=parent)
         Validation.__init__(self, required=required,
                             field_type=Validation.DATE)
@@ -485,9 +498,9 @@ class QDateWithCalendarEdit(QDateEdit, Validation, Ordered):
             self.clear()
 
 
-class QHiddenEdit(QLineEdit, Ordered):
-    def __init__(self, parent=None, column_name=None):
-        Ordered.__init__(self)
+class QHiddenEdit(QLineEdit, BaseEdit):
+    def __init__(self, parent=None, column_name=None, *args, **kwargs):
+        BaseEdit.__init__(self, *args, **kwargs)
         QLineEdit.__init__(self, parent=parent)
         self.column_name = column_name
         self.hide()
@@ -520,12 +533,10 @@ class QFieldWithActionsButton(QWidget):
         self.layout.insertWidget(1, add_button)
 
 
-class QFormulario(QFormLayout):
+class QFormBase:
     ENTIDADE = None
 
     def __init__(self, objeto=None, has_id=True):
-        super(QFormulario, self).__init__()
-        app.count_field = 0
         self.__has_id = has_id
         if self.__has_id:
             self.id = QHiddenEdit(column_name='id')
@@ -538,7 +549,7 @@ class QFormulario(QFormLayout):
     def _constroi(self):
         itens = sorted(
             self.__dict__.items(),
-            key=lambda k: k[1].order if isinstance(k[1], Ordered) else 0)
+            key=lambda k: k[1].order if isinstance(k[1], BaseEdit) else 0)
         for k, v in itens:
             self.add_field_in_row(k, v)
 
@@ -561,7 +572,10 @@ class QFormulario(QFormLayout):
                 field = QFieldWithActionsButton(f)
                 field.add_button(
                     self.clear_date, icon=u"\u2716", field_param=True)
-            self.addRow(QLabel(title_label(name)), field)
+            self.insert_in_layout(QLabel(title_label(name)), field)
+
+    def insert_in_layout(self, label, field):
+        raise NotImplementedError
 
     def novo(self, field):
         form = field.form_new()
@@ -582,6 +596,35 @@ class QFormulario(QFormLayout):
         b.objeto = objeto
         b._constroi()
         return b
+
+
+class QGridForm(QGridLayout, QFormBase):
+
+    def __init__(self, objeto=None, has_id=True):
+        QGridLayout.__init__(self)
+        QFormBase.__init__(self, objeto=objeto, has_id=has_id)
+
+    def insert_in_layout(self, label, field):
+        w = QWidget()
+        l = QHBoxLayout()
+        label.setFixedWidth(len(label.text()) * 9)
+        l.addWidget(label)
+        l.addWidget(field)
+        w.setLayout(l)
+        if isinstance(field, QFieldWithActionsButton):
+            field = field.field
+        self.addWidget(
+            w, field.y, field.x, field.ny, field.nx)
+
+
+class QFormulario(QFormLayout, QFormBase):
+    def __init__(self, objeto=None, has_id=True):
+        QFormLayout.__init__(self)
+        QFormBase.__init__(self, objeto=objeto, has_id=has_id)
+        app.count_field = 0
+
+    def insert_in_layout(self, label, field):
+        self.addRow(label, field)
 
 
 class QSearchForm(QFormulario):
@@ -638,7 +681,8 @@ class QFormDialog(QDialog, Centralize):
         self.setLayout(mainLayout)
 
         self.setWindowTitle(self.TITLE)
-        self.setGeometry(100, 100, 600, 400)
+        self.setFixedWidth(600)
+        self.adjustSize()
 
         try:
             objeto = self.form.ENTIDADE.get_by_id(self.pk)
@@ -810,7 +854,8 @@ class QListDialog(QDialog, Centralize):
         super(QListDialog, self).__init__()
         super(Centralize, self).__init__()
         self.instancia_filtro = None
-        self.setGeometry(100, 100, 600, 400)
+        self.setFixedWidth(600)
+        self.adjustSize()
         self.setWindowTitle(self.TITLE)
         window_layout = QVBoxLayout()
         if self.form_filter is not None:

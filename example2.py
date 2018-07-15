@@ -1,9 +1,10 @@
 from qtpeewee import (
     QFormulario, QCharEdit, QFormDialog, QDateWithCalendarEdit, QTableDialog,
     QResultList, QListDialog, QFkComboBox, QResultTable, run, app, QSearchForm,
-    QDecimalEdit, QDateTimeWithCalendarEdit, QChoicesComboBox, ChoiceField)
+    QDecimalEdit, QDateTimeWithCalendarEdit, QChoicesComboBox, ChoiceField,
+    QGridForm)
 from peewee import (
-    Model, CharField, DateField, ForeignKeyField, fn, IntegerField, FloatField,
+    Model, CharField, DateField, ForeignKeyField, fn, FloatField,
     DateTimeField)
 
 
@@ -12,8 +13,16 @@ class BaseModel(Model):
         database = app.db
 
 
+class Tipo(BaseModel):
+    nome = CharField()
+
+    def __str__(self):
+        return str(self.nome)
+
+
 class Recurso(BaseModel):
     nome = CharField()
+    tipo = ForeignKeyField(Tipo)
 
     def __str__(self):
         return str(self.nome)
@@ -64,16 +73,33 @@ class Alocacao(BaseModel):
     fim = DateTimeField()
 
 
+class FormularioTipo(QFormulario):
+    ENTIDADE = Tipo
+
+    def __init__(self):
+        super(FormularioTipo, self).__init__()
+        self.nome = QCharEdit(column_name='nome', max_lenght=100)
+
+
+class TipoDialog(QFormDialog):
+    FORMULARIO = FormularioTipo
+    TITLE = 'Cadastro de Tipo de Recurso'
+
+
 class FormularioRecurso(QFormulario):
     ENTIDADE = Recurso
 
     def __init__(self):
         super(FormularioRecurso, self).__init__()
         self.nome = QCharEdit(column_name='nome', max_lenght=100)
+        self.tipo = QFkComboBox(
+            Tipo, column_name='tipo', form_new=TipoDialog,
+            form_edit=TipoDialog)
 
 
 class RecursoDialog(QFormDialog):
     FORMULARIO = FormularioRecurso
+    TITLE = 'Cadastro de Recurso'
 
 
 class FormularioCliente(QFormulario):
@@ -130,7 +156,7 @@ class TarefaDialog(QFormDialog):
     TITLE = 'Cadastro de Tarefa'
 
 
-class FormularioAlocacao(QFormulario):
+class FormularioAlocacao(QGridForm):
     ENTIDADE = Alocacao
 
     def __init__(self):
@@ -140,9 +166,9 @@ class FormularioAlocacao(QFormulario):
             form_edit=TarefaDialog)
         self.recurso = QFkComboBox(
             Recurso, column_name='recurso', form_new=RecursoDialog,
-            form_edit=RecursoDialog)
-        self.inicio = QDateTimeWithCalendarEdit(column_name='inicio')
-        self.fim = QDateTimeWithCalendarEdit(column_name='fim')
+            form_edit=RecursoDialog, x=1, y=0)
+        self.inicio = QDateTimeWithCalendarEdit(column_name='inicio', x=0, y=1)
+        self.fim = QDateTimeWithCalendarEdit(column_name='fim', x=1, y=1)
 
 
 class AlocacaoDialog(QFormDialog):
@@ -151,6 +177,38 @@ class AlocacaoDialog(QFormDialog):
 
 
 # -----------------------------------------------------------------------------
+
+class TipoFilterForm(QSearchForm):
+
+    def fields(self):
+        return [{
+            "entity": Tipo.nome,
+            "type": QCharEdit,
+            "operator": "%",
+            "label": "Nome"
+        }]
+
+
+class TipoList(QResultList):
+    FORM = TipoDialog
+
+    def get_value(self, obj):
+        return obj.nome
+
+    def order(self):
+        return Tipo.nome
+
+    def get_all(self):
+        return Tipo.select()
+
+
+class TipoListDialog(QListDialog):
+    LIST = TipoList
+    FORM_FILTER = TipoFilterForm
+    TITLE = 'Consulta de tipos de recurso'
+
+# -----------------------------------------------------------------------------
+
 
 class RecursosFilterForm(QSearchForm):
 
@@ -252,9 +310,9 @@ class TarefasFilterForm(QSearchForm):
 
     def fields(self):
         return [{
-            "entity": Tarefa.projeto.nome,
-            "type": QCharEdit,
-            "operator": "%",
+            "entity": Tarefa.projeto,
+            "type": QFkComboBox,
+            "operator": "=",
             "label": "Projeto"
         }]
 
@@ -288,14 +346,14 @@ class AlocacoesFilterForm(QSearchForm):
 
     def fields(self):
         return [{
-            "entity": Alocacao.recurso.nome,
-            "type": QCharEdit,
-            "operator": "%",
+            "entity": Alocacao.recurso,
+            "type": QFkComboBox,
+            "operator": "=",
             "label": "Recurso"
         }, {
-            "entity": Alocacao.tarefa.titulo,
-            "type": QCharEdit,
-            "operator": "%",
+            "entity": Alocacao.tarefa,
+            "type": QFkComboBox,
+            "operator": "=",
             "label": "Tarefa"
         }]
 
@@ -321,34 +379,41 @@ class AlocacoesList(QResultTable):
 class AlocacoesListDialog(QTableDialog):
     LIST = AlocacoesList
     FORM_FILTER = AlocacoesFilterForm
+    TITLE = 'Consulta de alocações'
 
 
 def abrir_recursos(e):
     dialog = RecursosListDialog()
-    dialog.exec_()
+    dialog.exec()
 
 
 def abrir_tarefas(e):
     dialog = TarefasListDialog()
-    dialog.exec_()
+    dialog.exec()
 
 
 def abrir_clientes(e):
     dialog = ClientesListDialog()
-    dialog.exec_()
+    dialog.exec()
 
 
 def abrir_projetos(e):
     dialog = ProjetosListDialog()
-    dialog.exec_()
+    dialog.exec()
 
 
 def abrir_alocacoes(e):
     dialog = AlocacoesListDialog()
-    dialog.exec_()
+    dialog.exec()
+
+
+def abrir_tipo_recurso(e):
+    dialog = TipoListDialog()
+    dialog.exec()
 
 
 if __name__ == '__main__':
+    Tipo.create_table()
     Recurso.create_table()
     Cliente.create_table()
     Projeto.create_table()
@@ -358,6 +423,10 @@ if __name__ == '__main__':
     app.set_title('Meus Projetos')
 
     cadastrosMenu = app.formPrincipal.new_menu('&Cadastros')
+
+    app.formPrincipal.new_action(
+        cadastrosMenu, 'T&ipos de Recurso', abrir_tipo_recurso,
+        tinytxt='Ctrl+I', tip='Consulta ao cadastro de tipos de recurso.')
 
     app.formPrincipal.new_action(
         cadastrosMenu, '&Recursos', abrir_recursos, tinytxt='Ctrl+R',
