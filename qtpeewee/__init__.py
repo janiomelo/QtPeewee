@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QHBoxLayout, QMainWindow, QAction, QApplication, QComboBox,
     QTableWidget, QTableWidgetItem, QHeaderView, QDateTimeEdit, QGridLayout)
 import peewee
+from playhouse.hybrid import hybrid_property
 
 
 def empty(str_test):
@@ -21,6 +22,32 @@ def empty(str_test):
 
 def title_label(label):
     return label.title().replace('_', ' ')
+
+
+class CalculatedField:
+
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
+
+
+class hybrid_property_field(hybrid_property):
+    def __init__(self, fget, fset=None, fdel=None, expr=None):
+        self.fget = fget
+        self.fset = fset
+        self.fdel = fdel
+        self.expr = expr or fget
+
+    def __get__(self, instance, instance_type):
+        if instance is None:
+            value = self.expr(instance_type)
+        else:
+            value = self.fget(instance)
+        f = CalculatedField(name=self.fget.__name__, value=value)
+        return f
 
 
 class ChoiceField(peewee.IntegerField):
@@ -37,7 +64,7 @@ class Centralize:
         centerPoint = QApplication.desktop().screenGeometry(screen).center()
         frameGm.moveCenter(centerPoint)
         rect = frameGm.topLeft()
-        rect.setY(60)
+        rect.setY(80)
         self.move(rect)
 
 
@@ -236,7 +263,8 @@ class QIntEdit(QLineEdit, Validation, BaseEdit):
         Validation.__init__(self, required=required,
                             field_type=Validation.INTEGER)
         self.column_name = column_name
-        self.setText('0')
+        if required:
+            self.setText('0')
         self.setValidator(QIntValidator())
 
     def set_valor(self, valor):
@@ -245,7 +273,7 @@ class QIntEdit(QLineEdit, Validation, BaseEdit):
             self.setText(str(valor))
 
     def get_valor(self):
-        return int(self.text())
+        return int(self.text()) if not self.text() == '' else None
 
     def is_valid(self, value=None):
         value = value or 0
@@ -814,6 +842,8 @@ class QResultList(QListWidget):
                     w = (f["entity"].contains(f["field"].get_valor()))
                 elif f["operator"] == "=":
                     w = (f["entity"] == f["field"].get_valor())
+                elif f["operator"] == "<":
+                    w = (f["entity"] < f["field"].get_valor())
                 resultlist = resultlist.where(w)
         if self.order() is not None:
             resultlist = resultlist.order_by(self.order())
@@ -854,7 +884,7 @@ class QListDialog(QDialog, Centralize):
         super(QListDialog, self).__init__()
         super(Centralize, self).__init__()
         self.instancia_filtro = None
-        self.setFixedWidth(600)
+        self.setFixedWidth(800)
         self.adjustSize()
         self.setWindowTitle(self.TITLE)
         window_layout = QVBoxLayout()
@@ -953,6 +983,8 @@ class QResultTable(QTableWidget):
                     w = (f["entity"].contains(f["field"].get_valor()))
                 elif f["operator"] == "=":
                     w = (f["entity"] == f["field"].get_valor())
+                elif f["operator"] == "<":
+                    w = (f["entity"] < f["field"].get_valor())
                 resultlist = resultlist.where(w)
         if self.order() is not None:
             resultlist = resultlist.order_by(self.order())
@@ -966,7 +998,7 @@ class QResultTable(QTableWidget):
         labels = []
         for i, c in enumerate(self.columns()):
             label = c[0].name if isinstance(c, tuple) else c.name
-            labels.append(label.title())
+            labels.append(title_label(label))
             header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
         self.setHorizontalHeaderLabels(labels)
 
@@ -981,7 +1013,7 @@ class QResultTable(QTableWidget):
             i = 0
             for column in self.columns():
                 if isinstance(column, tuple):
-                    fk_id = getattr(item, column[0].column_name)
+                    fk_id = getattr(item, column[0].name)
                     if isinstance(column[0], peewee.ForeignKeyField):
                         fk_obj = column[0].rel_model.get_by_id(fk_id)
                         txt = str(getattr(fk_obj, column[1]))
@@ -990,7 +1022,7 @@ class QResultTable(QTableWidget):
                             if v['id'] == fk_id:
                                 txt = column[0].values[fk_id][column[1]]
                 else:
-                    txt = str(getattr(item, column.column_name))
+                    txt = str(getattr(item, column.name))
                 self.setItem(numRows, i, QTableWidgetItem(txt))
                 i += 1
             numRows += 1
@@ -1024,7 +1056,6 @@ class QTableDialog(QListDialog, Centralize):
     def __init__(self):
         super(QTableDialog, self).__init__()
         super(Centralize, self).__init__()
-        self.setGeometry(100, 100, 600, 400)
         self.setWindowTitle(self.TITLE)
         self.center()
 

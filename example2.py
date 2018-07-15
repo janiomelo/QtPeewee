@@ -2,7 +2,7 @@ from qtpeewee import (
     QFormulario, QCharEdit, QFormDialog, QDateWithCalendarEdit, QTableDialog,
     QResultList, QListDialog, QFkComboBox, QResultTable, run, app, QSearchForm,
     QDecimalEdit, QDateTimeWithCalendarEdit, QChoicesComboBox, ChoiceField,
-    QGridForm)
+    QGridForm, QIntEdit, hybrid_property_field)
 from peewee import (
     Model, CharField, DateField, ForeignKeyField, fn, FloatField,
     DateTimeField)
@@ -33,7 +33,7 @@ class Cliente(BaseModel):
     sigla = CharField()
 
     def __str__(self):
-        return str(self.nome)
+        return '({0}) {1}'.format(self.sigla, self.nome)
 
 
 class Projeto(BaseModel):
@@ -57,6 +57,7 @@ class Tarefa(BaseModel):
     realizado = FloatField(default=0)
     data_conclusao = DateField(null=True)
 
+    @hybrid_property_field
     def status(self):
         if self.data_conclusao is None:
             return 'Pendente'
@@ -218,6 +219,11 @@ class RecursosFilterForm(QSearchForm):
             "type": QCharEdit,
             "operator": "%",
             "label": "Nome"
+        }, {
+            "entity": Recurso.tipo,
+            "type": QFkComboBox,
+            "operator": "=",
+            "label": "Tipo"
         }]
 
 
@@ -257,7 +263,7 @@ class ClientesList(QResultList):
     FORM = ClienteDialog
 
     def get_value(self, obj):
-        return obj.nome
+        return '({0}) {1}'.format(obj.sigla, obj.nome)
 
     def order(self):
         return Cliente.nome
@@ -314,6 +320,11 @@ class TarefasFilterForm(QSearchForm):
             "type": QFkComboBox,
             "operator": "=",
             "label": "Projeto"
+        }, {
+            "entity": Tarefa.realizado,
+            "type": QIntEdit,
+            "operator": "<",
+            "label": "Realizado ( < )"
         }]
 
 
@@ -324,12 +335,15 @@ class TarefasList(QResultTable):
         return fn.lower(Tarefa.prioridade)
 
     def get_all(self):
-        return Tarefa.select().join(Projeto)
+        return Tarefa.select().join(
+            Projeto, on=(Projeto.id == Tarefa.projeto)).join(
+            Cliente, on=(Cliente.id == Projeto.cliente))
 
     def columns(self):
         return [
             Tarefa.titulo, Tarefa.data_limite, (Tarefa.prioridade, 'name'),
-            Tarefa.realizado, (Tarefa.projeto, 'nome')
+            Tarefa.realizado, (Tarefa.projeto, 'nome'), Tarefa.status,
+            (Tarefa.projeto, 'cliente')
         ]
 
 
@@ -355,6 +369,11 @@ class AlocacoesFilterForm(QSearchForm):
             "type": QFkComboBox,
             "operator": "=",
             "label": "Tarefa"
+        }, {
+            "entity": Alocacao.recurso.tipo,
+            "type": QFkComboBox,
+            "operator": "=",
+            "label": "Tipo de Recurso"
         }]
 
 
@@ -371,7 +390,7 @@ class AlocacoesList(QResultTable):
 
     def columns(self):
         return [
-            (Alocacao.recurso, 'nome'), (Alocacao.tarefa, 'titulo'),
+            (Alocacao.tarefa, 'titulo'), (Alocacao.recurso, 'nome'),
             Alocacao.inicio, Alocacao.fim
         ]
 
