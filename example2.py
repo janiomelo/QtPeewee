@@ -1,7 +1,7 @@
 from qtpeewee import (
     QFormulario, QCharEdit, QFormDialog, QDateWithCalendarEdit, QTableDialog,
     QResultList, QListDialog, QFkComboBox, QResultTable, run, app, QSearchForm,
-    QDecimalEdit, QDateTimeWithCalendarEdit, QChoicesComboBox)
+    QDecimalEdit, QDateTimeWithCalendarEdit, QChoicesComboBox, ChoiceField)
 from peewee import (
     Model, CharField, DateField, ForeignKeyField, fn, IntegerField, FloatField,
     DateTimeField)
@@ -40,7 +40,11 @@ class Tarefa(BaseModel):
     titulo = CharField()
     descricao = CharField(null=True)
     data_limite = DateField()
-    prioridade = IntegerField(default=1)
+    prioridade = ChoiceField(values=[
+        {"id": 2, "name": "High"},
+        {"id": 1, "name": "Normal"},
+        {"id": 0, "name": "Low"}
+    ], default=1)
     realizado = FloatField(default=0)
     data_conclusao = DateField(null=True)
 
@@ -113,11 +117,7 @@ class FormularioTarefa(QFormulario):
         self.titulo = QCharEdit(column_name='titulo', max_lenght=100)
         self.descricao = QCharEdit(column_name='descricao', required=False)
         self.data_limite = QDateWithCalendarEdit(column_name='data_limite')
-        self.prioridade = QChoicesComboBox(values=[
-            {"id": 2, "name": "High"},
-            {"id": 1, "name": "Normal"},
-            {"id": 0, "name": "Low"}
-        ], column_name='prioridade')
+        self.prioridade = QChoicesComboBox(Tarefa.prioridade)
         self.prioridade.set_valor(1)
         self.realizado = QDecimalEdit(
             column_name='realizado')
@@ -270,7 +270,7 @@ class TarefasList(QResultTable):
 
     def columns(self):
         return [
-            Tarefa.titulo, Tarefa.data_limite,
+            Tarefa.titulo, Tarefa.data_limite, (Tarefa.prioridade, 'name'),
             Tarefa.realizado, (Tarefa.projeto, 'nome')
         ]
 

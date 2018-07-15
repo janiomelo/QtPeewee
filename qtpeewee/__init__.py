@@ -23,6 +23,12 @@ def title_label(label):
     return label.title().replace('_', ' ')
 
 
+class ChoiceField(peewee.IntegerField):
+    def __init__(self, values: list, *args, **kwargs):
+        super(ChoiceField, self).__init__(*args, **kwargs)
+        self.values = values
+
+
 class Centralize:
     def center(self):
         frameGm = self.frameGeometry()
@@ -288,14 +294,13 @@ class QFkComboBox(QComboBox, Validation, Ordered):
 
 
 class QChoicesComboBox(QComboBox, Validation, Ordered):
-    def __init__(
-            self, values: list, required=True, column_name=None, parent=None,
-            field_type=Validation.CHAR):
+    def __init__(self, field, parent=None):
         Ordered.__init__(self)
         QComboBox.__init__(self, parent=parent)
-        Validation.__init__(self, required=required, field_type=field_type)
-        self.column_name = column_name
-        self.values = values
+        Validation.__init__(
+            self, required=not field.null, field_type=field.field_type)
+        self.column_name = field.column_name
+        self.values = field.values
         self.update_values()
 
     def update_values(self):
@@ -928,13 +933,17 @@ class QResultTable(QTableWidget):
         self.set_headers()
         numRows = 0
         for item in self.values:
-            # self.insertRow(numRows)
             i = 0
             for column in self.columns():
                 if isinstance(column, tuple):
                     fk_id = getattr(item, column[0].column_name)
-                    fk_obj = column[0].rel_model.get_by_id(fk_id)
-                    txt = str(getattr(fk_obj, column[1]))
+                    if isinstance(column[0], peewee.ForeignKeyField):
+                        fk_obj = column[0].rel_model.get_by_id(fk_id)
+                        txt = str(getattr(fk_obj, column[1]))
+                    else:
+                        for v in column[0].values:
+                            if v['id'] == fk_id:
+                                txt = column[0].values[fk_id][column[1]]
                 else:
                     txt = str(getattr(item, column.column_name))
                 self.setItem(numRows, i, QTableWidgetItem(txt))
