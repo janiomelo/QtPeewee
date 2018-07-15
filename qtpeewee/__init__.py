@@ -434,7 +434,7 @@ class QDateTimeWithCalendarEdit(QDateTimeEdit, Validation, BaseEdit):
         self.clear()
         self.setCalendarPopup(True)
 
-    def null_date(self):
+    def null_datetime(self):
         if self.dateTime() == self.minimumDateTime():
             return None
         return self.dateTime()
@@ -444,7 +444,7 @@ class QDateTimeWithCalendarEdit(QDateTimeEdit, Validation, BaseEdit):
         if valor is not None:
             if isinstance(valor, str):
                 self.setDateTime(
-                    QDateTime.fromString(valor, 'yyyy-MM-dd hh:mm'))
+                    QDateTime.fromString(valor, 'yyyy-MM-dd hh:mm:ss'))
             else:
                 self.setDateTime(valor)
         else:
@@ -456,14 +456,17 @@ class QDateTimeWithCalendarEdit(QDateTimeEdit, Validation, BaseEdit):
         self.setSpecialValueText(" ")
 
     def is_null(self):
-        if self.null_date() is None:
+        if self.null_datetime() is None:
             return True
         return False
 
-    def get_valor(self):
-        if not self.is_null():
-            return self.null_date().toString('yyyy-MM-dd hh:mm')
-        return None
+    def date_to_string(self, view_format, null=True):
+        if null and self.is_null():
+            return None
+        return self.null_datetime().toString(view_format)
+
+    def get_valor(self, view_format='yyyy-MM-dd hh:mm:ss'):
+        return self.date_to_string(view_format)
 
     def keyPressEvent(self, event):
         if self.is_null():
@@ -506,10 +509,13 @@ class QDateWithCalendarEdit(QDateEdit, Validation, BaseEdit):
             return True
         return False
 
-    def get_valor(self):
-        if not self.is_null():
-            return self.null_date().toString('yyyy-MM-dd')
-        return None
+    def date_to_string(self, format, null=True):
+        if null and self.is_null():
+            return None
+        return self.null_date().toString(format)
+
+    def get_valor(self, format='yyyy-MM-dd'):
+        return self.date_to_string(format)
 
     def keyPressEvent(self, event):
         if self.is_null():
@@ -656,20 +662,22 @@ class QSearchForm(QFormulario):
 
     def _constroi(self):
         for f in self.fields():
+            entity = f["entity"]
+            entity.null = True
             if f["type"] == QFkComboBox:
                 obj_field = f["type"](
-                    entity=f["entity"].rel_model, field=f["entity"])
+                    entity=entity.rel_model, field=entity)
             else:
-                obj_field = f["type"](field=f["entity"])
+                obj_field = f["type"](field=entity)
             setattr(
-                self, f["entity"].name,
+                self, entity.name,
                 obj_field)
-            f["field"] = getattr(self, f["entity"].name)
+            f["field"] = getattr(self, entity.name)
             if "label" in f.keys():
                 label = f["label"]
             else:
                 label = '{0} {1}'.format(
-                    f["entity"].name, f["entity"].model._meta.table_name)
+                    entity.name, entity.model._meta.table_name)
             self.add_field_in_row(label, f["field"])
             self._filters.append(f)
 
@@ -996,6 +1004,29 @@ class QResultTable(QTableWidget):
             header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
         self.setHorizontalHeaderLabels(labels)
 
+    def txt_from_tuple(self, item, column_tuple):
+        value = getattr(item, column_tuple[0].name)
+
+        if isinstance(column_tuple[0], peewee.ForeignKeyField):
+            fk_obj = column_tuple[0].rel_model.get_by_id(value)
+            txt = str(getattr(fk_obj, column_tuple[1]))
+        elif isinstance(column_tuple[0], ChoiceField):
+            for v in column_tuple[0].values:
+                if v['id'] == value:
+                    txt = column_tuple[0].values[value][column_tuple[1]]
+        elif (isinstance(column_tuple[0], peewee.DateField)
+                and value is not None):
+            txt = QDate(value).toString(column_tuple[1])
+        elif (isinstance(column_tuple[0], peewee.DateTimeField)
+                and value is not None):
+            import time
+            secs_since_epoch = time.mktime(value.timetuple()) * 1000
+            txt = QDateTime.fromMSecsSinceEpoch(secs_since_epoch).toString(
+                column_tuple[1])
+        else:
+            txt = value
+        return txt
+
     def update_result_set(self):
         self.values = self.get_all_with_filter()
         self.clear()
@@ -1007,14 +1038,7 @@ class QResultTable(QTableWidget):
             i = 0
             for column in self.columns():
                 if isinstance(column, tuple):
-                    fk_id = getattr(item, column[0].name)
-                    if isinstance(column[0], peewee.ForeignKeyField):
-                        fk_obj = column[0].rel_model.get_by_id(fk_id)
-                        txt = str(getattr(fk_obj, column[1]))
-                    else:
-                        for v in column[0].values:
-                            if v['id'] == fk_id:
-                                txt = column[0].values[fk_id][column[1]]
+                    txt = self.txt_from_tuple(item, column)
                 else:
                     txt = str(getattr(item, column.name))
                 self.setItem(numRows, i, QTableWidgetItem(txt))

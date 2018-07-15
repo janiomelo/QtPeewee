@@ -342,9 +342,10 @@ class TarefasList(QResultTable):
 
     def columns(self):
         return [
-            Tarefa.titulo, Tarefa.data_limite, (Tarefa.prioridade, 'name'),
-            Tarefa.realizado, (Tarefa.projeto, 'nome'), Tarefa.status,
-            (Tarefa.projeto, 'cliente')
+            Tarefa.titulo, (Tarefa.data_limite, 'dd/MM/yyyy'),
+            (Tarefa.prioridade, 'name'), Tarefa.realizado,
+            (Tarefa.projeto, 'nome'), Tarefa.status,
+            (Tarefa.projeto, 'cliente'), (Tarefa.data_conclusao, 'dd/MM/yyyy')
         ]
 
 
@@ -392,7 +393,7 @@ class AlocacoesList(QResultTable):
     def columns(self):
         return [
             (Alocacao.tarefa, 'titulo'), (Alocacao.recurso, 'nome'),
-            Alocacao.inicio, Alocacao.fim
+            (Alocacao.inicio, 'dd-MM hh:mm'), (Alocacao.fim, 'dd-MM hh:mm')
         ]
 
 
