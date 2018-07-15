@@ -39,6 +39,7 @@ class Cliente(BaseModel):
 class Projeto(BaseModel):
     nome = CharField()
     cliente = ForeignKeyField(Cliente)
+    prazo = DateField()
 
     def __str__(self):
         return str(self.nome)
@@ -126,6 +127,7 @@ class FormularioProjeto(QFormulario):
         self.cliente = QFkComboBox(
             Cliente, field=Projeto.cliente, form_new=ClienteDialog,
             form_edit=ClienteDialog)
+        self.prazo = QDateWithCalendarEdit(field=Projeto.prazo)
 
 
 class ProjetoDialog(QFormDialog):
@@ -296,7 +298,8 @@ class ProjetosList(QResultList):
     FORM = ProjetoDialog
 
     def get_value(self, obj):
-        return obj.nome
+        return '{0} - Prazo: {1}'.format(
+            obj.nome, obj.prazo.strftime('%d/%m/%Y'))
 
     def order(self):
         return Projeto.nome
