@@ -22,7 +22,7 @@ class Tipo(BaseModel):
 
 class Recurso(BaseModel):
     nome = CharField()
-    tipo = ForeignKeyField(Tipo)
+    tipo = ForeignKeyField(Tipo, null=False)
 
     def __str__(self):
         return str(self.nome)

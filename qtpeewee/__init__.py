@@ -166,16 +166,27 @@ def notifica_confirmacao(text, title):
         text, title, QMessageBox.Question, QMessageBox.Yes | QMessageBox.No)
 
 
-class Validation:
+class BaseEdit:
     CHAR = 'char'
     INTEGER = 'int'
     DATE = 'date'
     DATETIME = 'datetime'
     DECIMAL = 'decimal'
 
-    def __init__(self, max_length=225, required=True, field_type=CHAR):
+    def __init__(
+            self, max_length=225, is_required=True, field_type=CHAR,
+            force_null=False, x=0, y=0, nx=1, ny=1, *args, **kwargs):
+        self.order = app.count_field
+        app.count_field += 1
+        self.x = x
+        self.y = y
+        self.nx = nx
+        self.ny = ny
         self.max_length = max_length
-        self.required = required
+        if force_null:
+            self.is_required = False
+        else:
+            self.is_required = is_required
         self.field_type = field_type
 
     def destaca(self):
@@ -201,7 +212,7 @@ class Validation:
     def is_valid(self, value=None):
         if value is None:
             value = self.get_valor()
-        if self.required and empty(value):
+        if self.is_required and empty(value):
             return False
         return True
 
@@ -212,22 +223,12 @@ class Validation:
             self.destaca()
 
 
-class BaseEdit:
-    def __init__(self, x=0, y=0, nx=1, ny=1):
-        self.order = app.count_field
-        app.count_field += 1
-        self.x = x
-        self.y = y
-        self.nx = nx
-        self.ny = ny
-
-
-class QCharEdit(QLineEdit, Validation, BaseEdit):
+class QCharEdit(QLineEdit, BaseEdit):
     def __init__(self, field, parent=None, *args, **kwargs):
-        BaseEdit.__init__(self, *args, **kwargs)
         QLineEdit.__init__(self, parent=parent)
-        Validation.__init__(
-            self, max_length=field.max_length, required=not field.null)
+        BaseEdit.__init__(
+            self, max_length=field.max_length, is_required=not field.null,
+            *args, **kwargs)
         self.column_name = field.column_name
 
     def set_valor(self, valor):
@@ -254,14 +255,14 @@ class QCharEdit(QLineEdit, Validation, BaseEdit):
         super(QCharEdit, self).focusOutEvent(event)
 
 
-class QIntEdit(QLineEdit, Validation, BaseEdit):
+class QIntEdit(QLineEdit, BaseEdit):
     def __init__(self, field, parent=None, *args, **kwargs):
-        BaseEdit.__init__(self, *args, **kwargs)
         QLineEdit.__init__(self, parent=parent)
-        Validation.__init__(self, required=not field.null,
-                            field_type=Validation.INTEGER)
+        BaseEdit.__init__(
+            self, is_required=not field.null, field_type=BaseEdit.INTEGER,
+            *args, **kwargs)
         self.column_name = field.column_name
-        if self.required:
+        if self.is_required:
             self.setText('0')
         self.setValidator(QIntValidator())
 
@@ -275,20 +276,20 @@ class QIntEdit(QLineEdit, Validation, BaseEdit):
 
     def is_valid(self, value=None):
         value = value or 0
-        if Validation.is_valid(self, value):
+        if BaseEdit.is_valid(self, value):
             if self.field_type == self.INTEGER and not self.is_int(value):
                 return False
         return True
 
 
-class QFkComboBox(QComboBox, Validation, BaseEdit):
+class QFkComboBox(QComboBox, BaseEdit):
     def __init__(
             self, entity, field, form_new=None, form_edit=None, parent=None,
-            field_type=Validation.INTEGER, *args, **kwargs):
-        BaseEdit.__init__(self, *args, **kwargs)
+            field_type=BaseEdit.INTEGER, *args, **kwargs):
         QComboBox.__init__(self, parent=parent)
-        Validation.__init__(
-            self, required=not field.null, field_type=field_type)
+        BaseEdit.__init__(
+            self, is_required=not field.null, field_type=field_type, *args,
+            **kwargs)
         self.column_name = field.column_name
         self.entity = entity
         self.values = []
@@ -302,7 +303,7 @@ class QFkComboBox(QComboBox, Validation, BaseEdit):
     def update_values(self):
         self.clear()
         self.values = []
-        if not self.required:
+        if not self.is_required:
             self.addItem('')
         for i in self.get_all():
             self.values.append(i)
@@ -321,26 +322,26 @@ class QFkComboBox(QComboBox, Validation, BaseEdit):
     def get_valor(self):
         try:
             i = self.currentIndex()
-            if not self.required:
+            if not self.is_required:
                 i = i - 1 if i > 0 else 0
             return self.values[i]
         except Exception:
             return None
 
 
-class QChoicesComboBox(QComboBox, Validation, BaseEdit):
+class QChoicesComboBox(QComboBox, BaseEdit):
     def __init__(self, field, parent=None, *args, **kwargs):
-        BaseEdit.__init__(self, *args, **kwargs)
         QComboBox.__init__(self, parent=parent)
-        Validation.__init__(
-            self, required=not field.null, field_type=field.field_type)
+        BaseEdit.__init__(
+            self, is_required=not field.null, field_type=field.field_type,
+            *args, **kwargs)
         self.column_name = field.column_name
         self.values = field.values
         self.update_values()
 
     def update_values(self):
         self.clear()
-        if not self.required:
+        if not self.is_required:
             self.addItem('')
         for i in self.values:
             self.addItem(self.get_value(i))
@@ -359,21 +360,21 @@ class QChoicesComboBox(QComboBox, Validation, BaseEdit):
     def get_valor(self):
         try:
             i = self.currentIndex()
-            if not self.required:
+            if not self.is_required:
                 i = i - 1 if i > 0 else 0
             return self.values[i]['id']
         except Exception:
             return None
 
 
-class QRegExpEdit(QLineEdit, Validation, BaseEdit):
+class QRegExpEdit(QLineEdit, BaseEdit):
     def __init__(
-            self, regex, required=True, column_name=None,
+            self, regex, is_required=True, column_name=None,
             parent=None, *args, **kwargs):
-        BaseEdit.__init__(self, *args, **kwargs)
         QLineEdit.__init__(self, parent=parent)
-        Validation.__init__(
-            self, required=required, field_type=Validation.CHAR)
+        BaseEdit.__init__(
+            self, is_required=is_required, field_type=BaseEdit.CHAR, *args,
+            **kwargs)
         self.column_name = column_name
         self.regex = regex
         self.setValidator(QRegExpValidator(regExp=QRegExp(regex)))
@@ -387,20 +388,20 @@ class QRegExpEdit(QLineEdit, Validation, BaseEdit):
         return self.text()
 
     def is_valid(self, value=None):
-        if Validation.is_valid(self, value):
+        if BaseEdit.is_valid(self, value):
             if (value == re.match(str(self.regex), str(value))):
                 return True
         return False
 
 
-class QDecimalEdit(QLineEdit, Validation, BaseEdit):
+class QDecimalEdit(QLineEdit, BaseEdit):
     def __init__(
-            self, decimals=2, required=True, column_name=None,
+            self, decimals=2, is_required=True, column_name=None,
             parent=None, *args, **kwargs):
-        BaseEdit.__init__(self, *args, **kwargs)
         QLineEdit.__init__(self, parent=parent)
-        Validation.__init__(self, required=required,
-                            field_type=Validation.DECIMAL)
+        BaseEdit.__init__(
+            self, is_required=is_required, field_type=BaseEdit.DECIMAL, *args,
+            **kwargs)
         self.column_name = column_name
         self.decimals = decimals
         self.setText('0.00')
@@ -418,18 +419,18 @@ class QDecimalEdit(QLineEdit, Validation, BaseEdit):
 
     def is_valid(self, value=None):
         value = value or 0
-        if Validation.is_valid(self, value):
+        if BaseEdit.is_valid(self, value):
             if self.field_type == self.DECIMAL and not self.is_float(value):
                 return False
         return True
 
 
-class QDateTimeWithCalendarEdit(QDateTimeEdit, Validation, BaseEdit):
+class QDateTimeWithCalendarEdit(QDateTimeEdit, BaseEdit):
     def __init__(self, field, parent=None, *args, **kwargs):
-        BaseEdit.__init__(self, *args, **kwargs)
         QDateEdit.__init__(self, parent=parent)
-        Validation.__init__(self, required=not field.null,
-                            field_type=Validation.DATETIME)
+        BaseEdit.__init__(
+            self, is_required=not field.null, field_type=BaseEdit.DATETIME,
+            *args, **kwargs)
         self.column_name = field.column_name
         self.clear()
         self.setCalendarPopup(True)
@@ -460,8 +461,8 @@ class QDateTimeWithCalendarEdit(QDateTimeEdit, Validation, BaseEdit):
             return True
         return False
 
-    def date_to_string(self, view_format, null=True):
-        if null and self.is_null():
+    def date_to_string(self, view_format, valid_null=True):
+        if valid_null and self.is_null():
             return None
         return self.null_datetime().toString(view_format)
 
@@ -477,12 +478,12 @@ class QDateTimeWithCalendarEdit(QDateTimeEdit, Validation, BaseEdit):
             self.clear()
 
 
-class QDateWithCalendarEdit(QDateEdit, Validation, BaseEdit):
+class QDateWithCalendarEdit(QDateEdit, BaseEdit):
     def __init__(self, field, parent=None, *args, **kwargs):
-        BaseEdit.__init__(self, *args, **kwargs)
         QDateEdit.__init__(self, parent=parent)
-        Validation.__init__(self, required=not field.null,
-                            field_type=Validation.DATE)
+        BaseEdit.__init__(
+            self, is_required=not field.null, field_type=BaseEdit.DATE, *args,
+            **kwargs)
         self.column_name = field.column_name
         self.clear()
         self.setCalendarPopup(True)
@@ -509,8 +510,8 @@ class QDateWithCalendarEdit(QDateEdit, Validation, BaseEdit):
             return True
         return False
 
-    def date_to_string(self, format, null=True):
-        if null and self.is_null():
+    def date_to_string(self, format, valid_null=True):
+        if valid_null and self.is_null():
             return None
         return self.null_date().toString(format)
 
@@ -527,9 +528,11 @@ class QDateWithCalendarEdit(QDateEdit, Validation, BaseEdit):
 
 
 class QHiddenEdit(QLineEdit, BaseEdit):
-    def __init__(self, column_name, parent=None, *args, **kwargs):
-        BaseEdit.__init__(self, *args, **kwargs)
+    def __init__(
+            self, column_name, is_required=False, parent=None, *args,
+            **kwargs):
         QLineEdit.__init__(self, parent=parent)
+        BaseEdit.__init__(self, is_required=is_required, *args, **kwargs)
         self.column_name = column_name
         self.hide()
 
@@ -567,7 +570,7 @@ class QFormBase:
     def __init__(self, objeto=None, has_id=True):
         self.__has_id = has_id
         if self.__has_id:
-            self.id = QHiddenEdit(column_name='id')
+            self.id = QHiddenEdit(column_name='id', is_required=False)
         self.objeto = objeto
 
     def __valor_campo(self, campo):
@@ -663,12 +666,11 @@ class QSearchForm(QFormulario):
     def _constroi(self):
         for f in self.fields():
             entity = f["entity"]
-            entity.null = True
             if f["type"] == QFkComboBox:
                 obj_field = f["type"](
-                    entity=entity.rel_model, field=entity)
+                    entity=entity.rel_model, field=entity, force_null=True)
             else:
-                obj_field = f["type"](field=entity)
+                obj_field = f["type"](field=entity, force_null=True)
             setattr(
                 self, entity.name,
                 obj_field)
@@ -755,14 +757,14 @@ class QFormDialog(QDialog, Centralize):
 
     def is_valid(self):
         for k, v in self.instancia_formulario.__dict__.items():
-            if (isinstance(v, Validation)):
+            if (isinstance(v, BaseEdit)):
                 if not v.is_valid():
                     return False
         return True
 
     def atualiza_destaque(self):
         for k, v in self.instancia_formulario.__dict__.items():
-            if (isinstance(v, Validation)):
+            if (isinstance(v, BaseEdit)):
                 if v.is_valid():
                     v.retira_destaque()
                 else:
