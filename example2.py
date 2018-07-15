@@ -91,8 +91,7 @@ class TipoDialog(QFormDialog):
 class FormularioRecurso(QFormulario):
     ENTIDADE = Recurso
 
-    def __init__(self):
-        super(FormularioRecurso, self).__init__()
+    def fields(self):
         self.nome = QCharEdit(field=Recurso.nome)
         self.tipo = QFkComboBox(
             Tipo, field=Recurso.tipo, form_new=TipoDialog,
@@ -107,8 +106,7 @@ class RecursoDialog(QFormDialog):
 class FormularioCliente(QFormulario):
     ENTIDADE = Cliente
 
-    def __init__(self):
-        super(FormularioCliente, self).__init__()
+    def fields(self):
         self.sigla = QCharEdit(field=Cliente.sigla)
         self.nome = QCharEdit(field=Cliente.nome)
 
@@ -121,8 +119,7 @@ class ClienteDialog(QFormDialog):
 class FormularioProjeto(QFormulario):
     ENTIDADE = Projeto
 
-    def __init__(self):
-        super(FormularioProjeto, self).__init__()
+    def fields(self):
         self.nome = QCharEdit(field=Projeto.nome)
         self.cliente = QFkComboBox(
             Cliente, field=Projeto.cliente, form_new=ClienteDialog,
@@ -138,8 +135,7 @@ class ProjetoDialog(QFormDialog):
 class FormularioTarefa(QFormulario):
     ENTIDADE = Tarefa
 
-    def __init__(self):
-        super(FormularioTarefa, self).__init__()
+    def fields(self):
         self.projeto = QFkComboBox(
             Projeto, field=Tarefa.projeto, form_new=ProjetoDialog,
             form_edit=ProjetoDialog)
@@ -162,8 +158,7 @@ class TarefaDialog(QFormDialog):
 class FormularioAlocacao(QGridForm):
     ENTIDADE = Alocacao
 
-    def __init__(self):
-        super(FormularioAlocacao, self).__init__()
+    def fields(self):
         self.tarefa = QFkComboBox(
             Tarefa, field=Alocacao.tarefa, form_new=TarefaDialog,
             form_edit=TarefaDialog)
@@ -378,7 +373,7 @@ class AlocacoesFilterForm(QSearchForm):
             "entity": Alocacao.recurso.tipo,
             "type": QFkComboBox,
             "operator": "=",
-            "label": "Tipo de Recurso"
+            "label": "Tipo"
         }]
 
 

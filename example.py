@@ -34,10 +34,8 @@ class Funcionario(BaseModel):
 class FormularioTipo(QFormulario):
     ENTIDADE = Tipo
 
-    def __init__(self):
-        super(FormularioTipo, self).__init__()
-        self.descricao = QCharEdit(
-            column_name='descricao', max_lenght=100, required=True)
+    def fields(self):
+        self.descricao = QCharEdit(field=Tipo.descricao)
 
 
 class TipoDialog(QFormDialog):
@@ -48,15 +46,11 @@ class TipoDialog(QFormDialog):
 class FormularioCliente(QFormulario):
     ENTIDADE = Cliente
 
-    def __init__(self):
-        super(FormularioCliente, self).__init__()
-        self.nome = QCharEdit(
-            column_name='nome', max_lenght=100, required=True)
-        self.email = QCharEdit(column_name='email')
-        self.tipo = QFkComboBox(
-            entity=Tipo, column_name='tipo', form_new=TipoDialog,
-            form_edit=TipoDialog)
-        self.entrada = QDateTimeWithCalendarEdit(column_name='entrada')
+    def fields(self):
+        self.nome = QCharEdit(field=Cliente.nome)
+        self.email = QCharEdit(field=Cliente.email)
+        self.tipo = QFkComboBox(entity=Tipo, field=Cliente.tipo)
+        self.entrada = QDateTimeWithCalendarEdit(field=Cliente.entrada)
 
 
 class ClienteDialog(QFormDialog):
@@ -67,14 +61,10 @@ class ClienteDialog(QFormDialog):
 class FormularioFuncionario(QFormulario):
     ENTIDADE = Funcionario
 
-    def __init__(self):
-        super(FormularioFuncionario, self).__init__()
-        self.nome = QCharEdit(
-            column_name='nome', max_lenght=100, required=True)
-        self.nascimento = QDateWithCalendarEdit(column_name='nascimento')
-        self.tipo = QFkComboBox(
-            entity=Tipo, column_name='tipo', form_new=TipoDialog,
-            form_edit=TipoDialog)
+    def fields(self):
+        self.nome = QCharEdit(field=Funcionario.nome)
+        self.nascimento = QDateWithCalendarEdit(field=Funcionario.nascimento)
+        self.tipo = QFkComboBox(entity=Tipo, field=Funcionario.tipo)
 
 
 class FuncionarioDialog(QFormDialog):

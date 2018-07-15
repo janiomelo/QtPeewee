@@ -6,7 +6,7 @@ import hashlib
 
 from PyQt5.QtCore import Qt, QDate, QRegExp, QDateTime
 from PyQt5.QtGui import (
-    QDoubleValidator, QIntValidator, QRegExpValidator, QIcon)
+    QDoubleValidator, QIntValidator, QRegExpValidator, QIcon, QPalette)
 from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QFormLayout, QWidget, QMessageBox, QDateEdit, QDialog,
     QDialogButtonBox, QVBoxLayout, QGroupBox, QListWidget, QListWidgetItem,
@@ -568,10 +568,14 @@ class QFormBase:
     ENTIDADE = None
 
     def __init__(self, objeto=None, has_id=True):
+        self.fields()
         self.__has_id = has_id
         if self.__has_id:
             self.id = QHiddenEdit(column_name='id', is_required=False)
         self.objeto = objeto
+
+    def fields(self):
+        pass
 
     def __valor_campo(self, campo):
         if self.objeto is not None:
@@ -603,7 +607,9 @@ class QFormBase:
                 field = QFieldWithActionsButton(f)
                 field.add_button(
                     self.clear_date, icon=u"\u2716", field_param=True)
-            self.insert_in_layout(QLabel(title_label(name)), field)
+            label = QLabel(title_label(name))
+            label.setFixedWidth(len(label.text()) * 10)
+            self.insert_in_layout(label, field)
 
     def insert_in_layout(self, label, field):
         raise NotImplementedError
@@ -634,11 +640,18 @@ class QGridForm(QGridLayout, QFormBase):
     def __init__(self, objeto=None, has_id=True):
         QGridLayout.__init__(self)
         QFormBase.__init__(self, objeto=objeto, has_id=has_id)
+        self.setSpacing(10)
+        self.setContentsMargins(15, 20, 15, 15)
 
     def insert_in_layout(self, label, field):
+        label.setFixedWidth(80)
         w = QWidget()
+        w.setFixedWidth(373)
+        w.setFixedHeight(25)
+        w.setBackgroundRole(QPalette.HighlightedText)
         l = QHBoxLayout()
-        label.setFixedWidth(len(label.text()) * 9)
+        l.setSpacing(10)
+        l.setContentsMargins(0, 0, 0, 0)
         l.addWidget(label)
         l.addWidget(field)
         w.setLayout(l)
@@ -658,22 +671,23 @@ class QFormulario(QFormLayout, QFormBase):
         self.addRow(label, field)
 
 
-class QSearchForm(QFormulario):
+class QSearchForm(QGridForm):
     def __init__(self):
         super(QSearchForm, self).__init__(has_id=False)
         self._filters = []
 
     def _constroi(self):
+        x = 0
+        y = 0
         for f in self.fields():
             entity = f["entity"]
             if f["type"] == QFkComboBox:
                 obj_field = f["type"](
-                    entity=entity.rel_model, field=entity, force_null=True)
+                    entity=entity.rel_model, field=entity, force_null=True,
+                    x=x, y=y)
             else:
-                obj_field = f["type"](field=entity, force_null=True)
-            setattr(
-                self, entity.name,
-                obj_field)
+                obj_field = f["type"](field=entity, force_null=True, x=x, y=y)
+            setattr(self, entity.name, obj_field)
             f["field"] = getattr(self, entity.name)
             if "label" in f.keys():
                 label = f["label"]
@@ -682,6 +696,8 @@ class QSearchForm(QFormulario):
                     entity.name, entity.model._meta.table_name)
             self.add_field_in_row(label, f["field"])
             self._filters.append(f)
+            y = y + 1 if x == 1 else y
+            x = 0 if x == 1 else 1
 
     @property
     def filters(self):
@@ -713,7 +729,7 @@ class QFormDialog(QDialog, Centralize):
         self.setLayout(mainLayout)
 
         self.setWindowTitle(self.TITLE)
-        self.setFixedWidth(600)
+        self.setFixedWidth(800)
         self.adjustSize()
 
         try:
