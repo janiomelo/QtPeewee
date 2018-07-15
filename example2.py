@@ -79,7 +79,7 @@ class FormularioTipo(QFormulario):
 
     def __init__(self):
         super(FormularioTipo, self).__init__()
-        self.nome = QCharEdit(column_name='nome', max_lenght=100)
+        self.nome = QCharEdit(field=Tipo.nome)
 
 
 class TipoDialog(QFormDialog):
@@ -92,9 +92,9 @@ class FormularioRecurso(QFormulario):
 
     def __init__(self):
         super(FormularioRecurso, self).__init__()
-        self.nome = QCharEdit(column_name='nome', max_lenght=100)
+        self.nome = QCharEdit(field=Recurso.nome)
         self.tipo = QFkComboBox(
-            Tipo, column_name='tipo', form_new=TipoDialog,
+            Tipo, field=Recurso.tipo, form_new=TipoDialog,
             form_edit=TipoDialog)
 
 
@@ -108,8 +108,8 @@ class FormularioCliente(QFormulario):
 
     def __init__(self):
         super(FormularioCliente, self).__init__()
-        self.sigla = QCharEdit(column_name='sigla', max_lenght=3)
-        self.nome = QCharEdit(column_name='nome', max_lenght=100)
+        self.sigla = QCharEdit(field=Cliente.sigla)
+        self.nome = QCharEdit(field=Cliente.nome)
 
 
 class ClienteDialog(QFormDialog):
@@ -122,9 +122,9 @@ class FormularioProjeto(QFormulario):
 
     def __init__(self):
         super(FormularioProjeto, self).__init__()
-        self.nome = QCharEdit(column_name='nome', max_lenght=100)
+        self.nome = QCharEdit(field=Projeto.nome)
         self.cliente = QFkComboBox(
-            Cliente, column_name='cliente', form_new=ClienteDialog,
+            Cliente, field=Projeto.cliente, form_new=ClienteDialog,
             form_edit=ClienteDialog)
 
 
@@ -139,17 +139,17 @@ class FormularioTarefa(QFormulario):
     def __init__(self):
         super(FormularioTarefa, self).__init__()
         self.projeto = QFkComboBox(
-            Projeto, column_name='projeto', form_new=ProjetoDialog,
+            Projeto, field=Tarefa.projeto, form_new=ProjetoDialog,
             form_edit=ProjetoDialog)
-        self.titulo = QCharEdit(column_name='titulo', max_lenght=100)
-        self.descricao = QCharEdit(column_name='descricao', required=False)
-        self.data_limite = QDateWithCalendarEdit(column_name='data_limite')
-        self.prioridade = QChoicesComboBox(Tarefa.prioridade)
+        self.titulo = QCharEdit(field=Tarefa.titulo)
+        self.descricao = QCharEdit(field=Tarefa.descricao)
+        self.data_limite = QDateWithCalendarEdit(field=Tarefa.data_limite)
+        self.prioridade = QChoicesComboBox(field=Tarefa.prioridade)
         self.prioridade.set_valor(1)
         self.realizado = QDecimalEdit(
             column_name='realizado')
         self.data_conclusao = QDateWithCalendarEdit(
-            required=False, column_name='data_conclusao')
+            field=Tarefa.data_conclusao)
 
 
 class TarefaDialog(QFormDialog):
@@ -163,13 +163,14 @@ class FormularioAlocacao(QGridForm):
     def __init__(self):
         super(FormularioAlocacao, self).__init__()
         self.tarefa = QFkComboBox(
-            Tarefa, column_name='tarefa', form_new=TarefaDialog,
+            Tarefa, field=Alocacao.tarefa, form_new=TarefaDialog,
             form_edit=TarefaDialog)
         self.recurso = QFkComboBox(
-            Recurso, column_name='recurso', form_new=RecursoDialog,
+            Recurso, field=Alocacao.recurso, form_new=RecursoDialog,
             form_edit=RecursoDialog, x=1, y=0)
-        self.inicio = QDateTimeWithCalendarEdit(column_name='inicio', x=0, y=1)
-        self.fim = QDateTimeWithCalendarEdit(column_name='fim', x=1, y=1)
+        self.inicio = QDateTimeWithCalendarEdit(
+            field=Alocacao.inicio, x=0, y=1)
+        self.fim = QDateTimeWithCalendarEdit(field=Alocacao.fim, x=1, y=1)
 
 
 class AlocacaoDialog(QFormDialog):
