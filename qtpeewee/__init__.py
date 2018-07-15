@@ -287,6 +287,45 @@ class QFkComboBox(QComboBox, Validation, Ordered):
             return None
 
 
+class QChoicesComboBox(QComboBox, Validation, Ordered):
+    def __init__(
+            self, values: list, required=True, column_name=None, parent=None,
+            field_type=Validation.CHAR):
+        Ordered.__init__(self)
+        QComboBox.__init__(self, parent=parent)
+        Validation.__init__(self, required=required, field_type=field_type)
+        self.column_name = column_name
+        self.values = values
+        self.update_values()
+
+    def update_values(self):
+        self.clear()
+        if not self.required:
+            self.addItem('')
+        for i in self.values:
+            self.addItem(self.get_value(i))
+
+    def get_value(self, item) -> str:
+        return str(item['name'])
+
+    def set_valor(self, value_id):
+        i = 0
+        for v in self.values:
+            if v['id'] == value_id:
+                self.setCurrentIndex(i)
+                return
+            i += 1
+
+    def get_valor(self):
+        try:
+            i = self.currentIndex()
+            if not self.required:
+                i = i - 1 if i > 0 else 0
+            return self.values[i]['id']
+        except Exception:
+            return None
+
+
 class QRegExpEdit(QLineEdit, Validation, Ordered):
     def __init__(
             self, regex, required=True, column_name=None,
@@ -794,13 +833,13 @@ class QListDialog(QDialog, Centralize):
     def adiciona_botoes(self):
         actions = QWidget()
         actions_layout = QHBoxLayout(self)
-        button_novo = QPushButton('Novo')
+        button_novo = QPushButton('&Novo')
         button_novo.clicked.connect(self.novo)
         actions_layout.addWidget(button_novo)
-        button_editar = QPushButton('Editar')
+        button_editar = QPushButton('&Editar')
         button_editar.clicked.connect(self.editar)
         actions_layout.addWidget(button_editar)
-        button_excluir = QPushButton('Excluir')
+        button_excluir = QPushButton('E&xcluir')
         button_excluir.clicked.connect(self.excluir)
         actions_layout.addWidget(button_excluir)
         actions.setLayout(actions_layout)

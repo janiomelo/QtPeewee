@@ -1,7 +1,7 @@
 from qtpeewee import (
     QFormulario, QCharEdit, QFormDialog, QDateWithCalendarEdit, QTableDialog,
     QResultList, QListDialog, QFkComboBox, QResultTable, run, app, QSearchForm,
-    QIntEdit, QDecimalEdit, QDateTimeWithCalendarEdit)
+    QDecimalEdit, QDateTimeWithCalendarEdit, QChoicesComboBox)
 from peewee import (
     Model, CharField, DateField, ForeignKeyField, fn, IntegerField, FloatField,
     DateTimeField)
@@ -113,7 +113,12 @@ class FormularioTarefa(QFormulario):
         self.titulo = QCharEdit(column_name='titulo', max_lenght=100)
         self.descricao = QCharEdit(column_name='descricao', required=False)
         self.data_limite = QDateWithCalendarEdit(column_name='data_limite')
-        self.prioridade = QIntEdit(column_name='prioridade')
+        self.prioridade = QChoicesComboBox(values=[
+            {"id": 2, "name": "High"},
+            {"id": 1, "name": "Normal"},
+            {"id": 0, "name": "Low"}
+        ], column_name='prioridade')
+        self.prioridade.set_valor(1)
         self.realizado = QDecimalEdit(
             column_name='realizado')
         self.data_conclusao = QDateWithCalendarEdit(
