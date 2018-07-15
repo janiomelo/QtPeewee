@@ -363,7 +363,11 @@ class QDateTimeWithCalendarEdit(QDateTimeEdit, Validation, Ordered):
     def set_valor(self, valor):
         self.validates(valor)
         if valor is not None:
-            self.setDateTime(valor)
+            if isinstance(valor, str):
+                self.setDateTime(
+                    QDateTime.fromString(valor, 'yyyy-MM-dd hh:mm'))
+            else:
+                self.setDateTime(valor)
         else:
             self.setDateTime(self.minimumDateTime())
             self.destaca()
@@ -507,7 +511,8 @@ class QFormulario(QFormLayout):
                 if f.form_edit is not None:
                     field.add_button(
                         self.edit, icon=u"\u270D", field_param=True)
-            if isinstance(field, QDateEdit):
+            if (isinstance(field, QDateEdit) or
+                    isinstance(field, QDateTimeEdit)):
                 f = field
                 field = QFieldWithActionsButton(f)
                 field.add_button(
