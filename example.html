@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style type="text/css">
+        body {
+          font-family: "Open Sans", sans-serif;
+          line-height: 1.25;
+        }
+
+        table caption {
+          font-size: 1em;
+          font-weight: bold;
+          text-align: center;
+        }
+
+        table th,
+        table td {
+          text-align: center;
+          font-size: 1em;
+          padding: 2px;
+        }
+
+        p {
+            font-size: .5em;
+            line-height: 1;
+            margin-bottom: 0px;
+            margin-top: 0px;
+        }
+
+        table th {
+          letter-spacing: .1em;
+          text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <table border=1 width="100%" cellspacing=0>
+        <caption>Relatório de Projetos</caption>
+        <thead>
+            <tr>
+                <th>Cliente</th>
+                <th>Projeto</th>
+                <th>Tarefas</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for projeto in projetos %}
+            <tr>
+                <td>{{ projeto.cliente.sigla }}</td>
+                <td>{{ projeto.nome }}</td>
+                <td>Pendentes: {{ projeto.n_tarefas_pendentes }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p align="right">{{ total_projetos }} projetos</p>
+    <p align="right">{{ n_tarefas_pendentes }} tarefas Pendentes</p>
+</body>
+</html>
