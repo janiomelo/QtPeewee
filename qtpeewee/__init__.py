@@ -4,16 +4,22 @@ import re
 import sys
 import hashlib
 
-from PyQt5.QtCore import Qt, QDate, QRegExp, QDateTime
+from PyQt5.QtCore import (
+    Qt, QDate, QRegExp, QDateTime,  QFile, QFileInfo, QTextCodec)
 from PyQt5.QtGui import (
-    QDoubleValidator, QIntValidator, QRegExpValidator, QIcon, QPalette)
+    QDoubleValidator, QIntValidator, QRegExpValidator, QIcon, QPalette,
+    QTextDocumentWriter, QKeySequence)
 from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QFormLayout, QWidget, QMessageBox, QDateEdit, QDialog,
     QDialogButtonBox, QVBoxLayout, QGroupBox, QListWidget, QListWidgetItem,
     QPushButton, QHBoxLayout, QMainWindow, QAction, QApplication, QComboBox,
-    QTableWidget, QTableWidgetItem, QHeaderView, QDateTimeEdit, QGridLayout)
+    QTableWidget, QTableWidgetItem, QHeaderView, QDateTimeEdit, QGridLayout,
+    QFrame, QFileDialog, QTextEdit, QToolBar)
+from PyQt5.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
 import peewee
 from playhouse.hybrid import hybrid_property
+import qtawesome as qta
+from jinja2 import Template
 
 
 def empty(str_test):
@@ -56,6 +62,34 @@ class ChoiceField(peewee.IntegerField):
         self.values = values
 
 
+class QVBoxLayoutWithoutMargins(QVBoxLayout):
+    def __init__(self):
+        QVBoxLayout.__init__(self)
+        self.setSpacing(5)
+        self.setContentsMargins(0, 0, 0, 0)
+
+
+class QVBoxLayoutWithMargins(QVBoxLayout):
+    def __init__(self):
+        QVBoxLayout.__init__(self)
+        self.setSpacing(5)
+        self.setContentsMargins(10, 10, 10, 10)
+
+
+class QHBoxLayoutWithoutMargins(QHBoxLayout):
+    def __init__(self):
+        QHBoxLayout.__init__(self)
+        self.setSpacing(5)
+        self.setContentsMargins(0, 0, 0, 0)
+
+
+class QHBoxLayoutWithMargins(QHBoxLayout):
+    def __init__(self):
+        QHBoxLayout.__init__(self)
+        self.setSpacing(5)
+        self.setContentsMargins(10, 10, 10, 10)
+
+
 class Centralize:
     def center(self):
         frameGm = self.frameGeometry()
@@ -70,8 +104,8 @@ class Centralize:
 
 class QPrincipal(QMainWindow, Centralize):
     def __init__(self):
-        super(QPrincipal, self).__init__()
-        super(Centralize, self).__init__()
+        QMainWindow.__init__(self)
+        Centralize.__init__(self)
         self.import_env_vars()
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         locale.setlocale(locale.LC_ALL, self.env('locale'))
@@ -128,6 +162,7 @@ class QPeeweeApp(QApplication):
         self.__principal = self.PRINCIPAL_FORM()
         self.__db = db
         self.count_field = 0
+        self.setStyleSheet(open("style.qss", "r").read())
 
     def set_title(self, title):
         self.formPrincipal.setWindowTitle(title)
@@ -164,6 +199,173 @@ def notifica_erro(text, title):
 def notifica_confirmacao(text, title):
     return notifica(
         text, title, QMessageBox.Question, QMessageBox.Yes | QMessageBox.No)
+
+
+class QPreview(QDialog):
+    def __init__(self, parent=None):
+        super(QPreview, self).__init__(parent)
+        if self.template() is None:
+            raise Exception("TEMPLATE is required.")
+        self.setFixedWidth(800)
+        self.setFixedHeight(700)
+        self.init()
+
+    def template(self):
+        return None
+
+    def render(self, **kwargs):
+        template = Template(open(self.template(), 'r').read())
+        self.load(template.render(**kwargs))
+
+    def init(self):
+        l = QVBoxLayout()
+        self.setLayout(l)
+        self.text_edit = QTextEdit()
+        self.text_edit.setFocus()
+        self.text_edit.setReadOnly(True)
+        self.text_edit.setStyleSheet(
+            'background-color: white; border-width: 1px')
+        l.addWidget(self.create_toolbar())
+        l.addWidget(self.text_edit)
+
+        self.before_render()
+
+    def load(self, source=None):
+        if source is not None:
+            self.text_edit.setHtml(source)
+        self.setCurrentFileName()
+        return True
+
+    def setCurrentFileName(self, fileName=''):
+        self.fileName = fileName
+        self.text_edit.document().setModified(False)
+
+        if not fileName:
+            shownName = 'untitled.txt'
+        else:
+            shownName = QFileInfo(fileName).fileName()
+
+        self.setWindowTitle(self.tr("%s[*] - %s" % (shownName, "Rich Text")))
+        self.setWindowModified(False)
+
+    def fileSaveDoc(self):
+        fn, _ = QFileDialog.getSaveFileName(
+            self, "Save as...", None,
+            "ODF files (*.odt)")
+
+        if not fn:
+            return False
+
+        lfn = fn.lower()
+        if not lfn.endswith(('.odt')):
+            # The default.
+            fn += '.odt'
+
+        self.setCurrentFileName(fn)
+        return self.fileSave()
+
+    def fileSave(self):
+        if not self.fileName:
+            return self.fileSaveAs()
+
+        writer = QTextDocumentWriter(self.fileName)
+        success = writer.write(self.text_edit.document())
+        if success:
+            self.text_edit.document().setModified(False)
+
+        return success
+
+    def fileSaveHtml(self):
+        fn, _ = QFileDialog.getSaveFileName(
+            self, "Save as...", None,
+            "HTML-Files (*.htm *.html)")
+
+        if not fn:
+            return False
+
+        lfn = fn.lower()
+        if not lfn.endswith(('.htm', '.html')):
+            # The default.
+            fn += '.html'
+
+        self.setCurrentFileName(fn)
+        return self.fileSave()
+
+    def filePrint(self):
+        printer = QPrinter(QPrinter.HighResolution)
+        dlg = QPrintDialog(printer, self)
+
+        if self.text_edit.textCursor().hasSelection():
+            dlg.addEnabledOption(QPrintDialog.PrintSelection)
+
+        dlg.setWindowTitle("Print Document")
+
+        if dlg.exec_() == QPrintDialog.Accepted:
+            self.text_edit.print_(printer)
+
+        del dlg
+
+    def filePrintPreview(self):
+        printer = QPrinter(QPrinter.HighResolution)
+        preview = QPrintPreviewDialog(printer, self)
+        preview.paintRequested.connect(self.printPreview)
+        preview.exec_()
+
+    def printPreview(self, printer):
+        self.text_edit.print_(printer)
+
+    def filePrintPdf(self):
+        fn, _ = QFileDialog.getSaveFileName(
+            self, "Export PDF", None, "PDF files (*.pdf)")
+
+        if fn:
+            printer = QPrinter(QPrinter.HighResolution)
+            printer.setOutputFormat(QPrinter.PdfFormat)
+            printer.setOutputFileName(fn)
+            self.text_edit.document().print_(printer)
+
+    def create_toolbar(self):
+        tb = QToolBar(self)
+        tb.setWindowTitle("File Actions")
+
+        self.actionSaveDoc = QAction(
+            qta.icon('fa.file-word-o', color='black'),
+            "Save &Doc...", self, priority=QAction.LowPriority,
+            shortcut=Qt.CTRL + Qt.SHIFT + Qt.Key_D,
+            triggered=self.fileSaveDoc)
+        tb.addAction(self.actionSaveDoc)
+
+        self.actionSaveDoc = QAction(
+            qta.icon('fa.globe', color='black'),
+            "Save &HTML...", self, priority=QAction.LowPriority,
+            shortcut=Qt.CTRL + Qt.SHIFT + Qt.Key_H,
+            triggered=self.fileSaveHtml)
+        tb.addAction(self.actionSaveDoc)
+
+        self.actionPrint = QAction(
+            qta.icon('fa.print', color='black'),
+            "&Print...", self, priority=QAction.LowPriority,
+            shortcut=QKeySequence.Print, triggered=self.filePrint)
+        tb.addAction(self.actionPrint)
+
+        self.actionPrintPreview = QAction(
+            qta.icon('fa.eye', color='black'),
+            "Print Preview...", self, triggered=self.filePrintPreview,
+            shortcut=Qt.CTRL + Qt.SHIFT + Qt.Key_P)
+        tb.addAction(self.actionPrintPreview)
+
+        self.actionPrintPdf = QAction(
+            qta.icon('fa.file-pdf-o', color='black'),
+            "&Export PDF...", self, priority=QAction.LowPriority,
+            shortcut=Qt.CTRL + Qt.Key_D, triggered=self.filePrintPdf)
+        tb.addAction(self.actionPrintPdf)
+
+        self.actionQuit = QAction(
+            qta.icon('fa.sign-out', color='black'),
+            "&Quit", self, shortcut=QKeySequence.Quit, triggered=self.close)
+        tb.addAction(self.actionQuit)
+
+        return tb
 
 
 class BaseEdit:
@@ -547,20 +749,21 @@ class QFieldWithActionsButton(QWidget):
     def __init__(
             self, field, *args, **kwargs):
         super(QFieldWithActionsButton, self).__init__(*args, **kwargs)
-        self.layout = QHBoxLayout()
-        self.layout.setSpacing(5)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout = QHBoxLayoutWithoutMargins()
         self.layout.insertWidget(0, field)
         self.field = field
         self.setLayout(self.layout)
 
-    def add_button(self, action, icon=u"\u2795", field_param=False):
-        add_button = QPushButton(icon)
+    def add_button(self, action, fa_icon='fa.plus', field_param=False):
+        icon = qta.icon(fa_icon, color='black')
+        add_button = QPushButton(icon, '')
+        add_button.setStyleSheet('font-size: 12px')
         if field_param:
             add_button.clicked.connect(lambda: action(self.field))
         else:
             add_button.clicked.connect(action)
         add_button.setFixedWidth(25)
+        add_button.setFixedHeight(25)
         self.layout.insertWidget(1, add_button)
 
 
@@ -600,13 +803,13 @@ class QFormBase:
                 field.add_button(self.novo, field_param=True)
                 if f.form_edit is not None:
                     field.add_button(
-                        self.edit, icon=u"\u270D", field_param=True)
+                        self.edit, fa_icon='fa.pencil', field_param=True)
             if (isinstance(field, QDateEdit) or
                     isinstance(field, QDateTimeEdit)):
                 f = field
                 field = QFieldWithActionsButton(f)
                 field.add_button(
-                    self.clear_date, icon=u"\u2716", field_param=True)
+                    self.clear_date, fa_icon='fa.trash', field_param=True)
             label = QLabel(title_label(name))
             label.setFixedWidth(len(label.text()) * 10)
             self.insert_in_layout(label, field)
@@ -640,18 +843,18 @@ class QGridForm(QGridLayout, QFormBase):
     def __init__(self, objeto=None, has_id=True):
         QGridLayout.__init__(self)
         QFormBase.__init__(self, objeto=objeto, has_id=has_id)
-        self.setSpacing(10)
-        self.setContentsMargins(15, 20, 15, 15)
+        self.setSpacing(6)
+        self.setContentsMargins(0, 10, 0, 10)
 
     def insert_in_layout(self, label, field):
         label.setFixedWidth(80)
+        label.setAlignment(Qt.AlignRight)
         w = QWidget()
-        w.setFixedWidth(373)
-        w.setFixedHeight(25)
+        w.setStyleSheet('background: none')
+        w.setFixedWidth(330)
+        w.setFixedHeight(26)
         w.setBackgroundRole(QPalette.HighlightedText)
-        l = QHBoxLayout()
-        l.setSpacing(10)
-        l.setContentsMargins(0, 0, 0, 0)
+        l = QHBoxLayoutWithoutMargins()
         l.addWidget(label)
         l.addWidget(field)
         w.setLayout(l)
@@ -666,6 +869,9 @@ class QFormulario(QFormLayout, QFormBase):
         QFormLayout.__init__(self)
         QFormBase.__init__(self, objeto=objeto, has_id=has_id)
         app.count_field = 0
+        self.setSpacing(6)
+        # self.setLabelAlignment(Qt.AlignRight)
+        self.setContentsMargins(10, 10, 10, 10)
 
     def insert_in_layout(self, label, field):
         self.addRow(label, field)
@@ -715,18 +921,23 @@ class QFormDialog(QDialog, Centralize):
         super(QFormDialog, self).__init__()
         super(Centralize, self).__init__()
         self.createFormGroupBox()
+        self.pk = pk
 
         self.buttonBox = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
-        self.pk = pk
 
-        mainLayout = QVBoxLayout()
+        f = QFrame(self)
+        mainLayout = QVBoxLayoutWithMargins()
         mainLayout.addWidget(self.formGroupBox)
         self.add_buttons(mainLayout)
         mainLayout.addWidget(self.buttonBox)
-        self.setLayout(mainLayout)
+        f.setLayout(mainLayout)
+
+        l = QVBoxLayoutWithMargins()
+        l.addWidget(f)
+        self.setLayout(l)
 
         self.setWindowTitle(self.TITLE)
         self.setFixedWidth(800)
@@ -746,7 +957,7 @@ class QFormDialog(QDialog, Centralize):
         width = 30
         w = QWidget()
         w.setFixedHeight(50)
-        btn_layout = QHBoxLayout()
+        btn_layout = QHBoxLayoutWithMargins()
         for b in self.buttons():
             if b['condition'] is None or b['condition']:
                 width_btn = (len(b['label']) * 10)
@@ -807,7 +1018,8 @@ class QFormDialog(QDialog, Centralize):
         form.objeto.save()
 
     def createFormGroupBox(self):
-        self.formGroupBox = QGroupBox("")
+        self.formGroupBox = QWidget()
+        self.formGroupBox.setStyleSheet('background: none')
 
     def set_layout_default(self, layout):
         self.formGroupBox.setLayout(layout)
@@ -907,10 +1119,11 @@ class QListDialog(QDialog, Centralize):
         self.setFixedWidth(800)
         self.adjustSize()
         self.setWindowTitle(self.TITLE)
-        window_layout = QVBoxLayout()
+        window_layout = QVBoxLayoutWithMargins()
         if self.form_filter is not None:
             window_layout.addWidget(self.adiciona_filtro())
-            button_save = QPushButton('Filtrar')
+            button_save = QPushButton(
+                qta.icon('fa.search', color='black'), 'Filtrar')
             button_save.clicked.connect(self.filtrar)
             window_layout.addWidget(button_save)
         actions = self.adiciona_botoes()
@@ -928,18 +1141,26 @@ class QListDialog(QDialog, Centralize):
         gb_layout = QGroupBox("Filtro")
         self.instancia_filtro = self.form_filter.get(None)
         gb_layout.setLayout(self.instancia_filtro)
-        return gb_layout
+
+        f = QFrame(self)
+        mainLayout = QVBoxLayoutWithMargins()
+        mainLayout.addWidget(gb_layout)
+        f.setLayout(mainLayout)
+
+        return f
 
     def adiciona_botoes(self):
         actions = QWidget()
-        actions_layout = QHBoxLayout(self)
-        button_novo = QPushButton('&Novo')
+        actions_layout = QHBoxLayoutWithoutMargins()
+        button_novo = QPushButton(qta.icon('fa.plus', color='black'), '&Novo')
         button_novo.clicked.connect(self.novo)
         actions_layout.addWidget(button_novo)
-        button_editar = QPushButton('&Editar')
+        button_editar = QPushButton(
+            qta.icon('fa.pencil', color='black'), '&Editar')
         button_editar.clicked.connect(self.editar)
         actions_layout.addWidget(button_editar)
-        button_excluir = QPushButton('E&xcluir')
+        button_excluir = QPushButton(
+            qta.icon('fa.trash', color='black'), 'E&xcluir')
         button_excluir.clicked.connect(self.excluir)
         actions_layout.addWidget(button_excluir)
         actions.setLayout(actions_layout)

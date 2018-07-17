@@ -1,2 +1,9 @@
+Jinja2==2.10
+MarkupSafe==1.0
 peewee==3.5.0
+pkg-resources==0.0.0
 PyQt5==5.10.1
+QtAwesome==0.4.4
+QtPy==1.4.2
+sip==4.19.8
+six==1.11.0

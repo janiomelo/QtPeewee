@@ -2,10 +2,10 @@ from qtpeewee import (
     QFormulario, QCharEdit, QFormDialog, QDateWithCalendarEdit, QTableDialog,
     QResultList, QListDialog, QFkComboBox, QResultTable, run, app, QSearchForm,
     QDecimalEdit, QDateTimeWithCalendarEdit, QChoicesComboBox, ChoiceField,
-    QGridForm, QIntEdit, hybrid_property_field)
+    QGridForm, QIntEdit, hybrid_property_field, QPreview)
 from peewee import (
     Model, CharField, DateField, ForeignKeyField, fn, FloatField,
-    DateTimeField)
+    DateTimeField, JOIN)
 
 
 class BaseModel(Model):
@@ -323,7 +323,7 @@ class TarefasFilterForm(QSearchForm):
             "entity": Tarefa.realizado,
             "type": QIntEdit,
             "operator": "<",
-            "label": "Realizado ( < )"
+            "label": "% Real. <"
         }]
 
 
@@ -401,6 +401,26 @@ class AlocacoesListDialog(QTableDialog):
     TITLE = 'Consulta de alocações'
 
 
+class QPreviewProjetos(QPreview):
+    def template(self):
+        return 'example.html'
+
+    def before_render(self):
+        query = Projeto.select(
+            Projeto.id, Projeto.nome, Projeto.cliente,
+            fn.Count(Tarefa.id).alias('n_tarefas_pendentes')
+        ).join(Tarefa, JOIN.LEFT_OUTER).group_by(
+            Projeto.id, Projeto.nome, Projeto.cliente
+        ).order_by(Projeto.nome)
+
+        n_tarefas_pendentes = 0
+        for l in query:
+            n_tarefas_pendentes += l.n_tarefas_pendentes
+        self.render(
+            projetos=query, total_projetos=len(query),
+            n_tarefas_pendentes=n_tarefas_pendentes)
+
+
 def abrir_recursos(e):
     dialog = RecursosListDialog()
     dialog.exec()
@@ -431,6 +451,11 @@ def abrir_tipo_recurso(e):
     dialog.exec()
 
 
+def abrir_preview(e):
+    p = QPreviewProjetos()
+    p.exec()
+
+
 if __name__ == '__main__':
     Tipo.create_table()
     Recurso.create_table()
@@ -442,6 +467,7 @@ if __name__ == '__main__':
     app.set_title('Meus Projetos')
 
     cadastrosMenu = app.formPrincipal.new_menu('&Cadastros')
+    relatoriosMenu = app.formPrincipal.new_menu('&Relatórios')
 
     app.formPrincipal.new_action(
         cadastrosMenu, 'T&ipos de Recurso', abrir_tipo_recurso,
@@ -466,5 +492,9 @@ if __name__ == '__main__':
     app.formPrincipal.new_action(
         cadastrosMenu, '&Alocação', abrir_alocacoes, tinytxt='Ctrl+A',
         tip='Consultar alocações.')
+
+    app.formPrincipal.new_action(
+        relatoriosMenu, 'Previe&w', abrir_preview, tinytxt='Ctrl+W',
+        tip='Exibir preview')
 
     run()
