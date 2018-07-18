@@ -5,7 +5,7 @@ import sys
 import hashlib
 
 from PyQt5.QtCore import (
-    Qt, QDate, QRegExp, QDateTime,  QFile, QFileInfo, QTextCodec)
+    Qt, QDate, QRegExp, QDateTime, QFileInfo)
 from PyQt5.QtGui import (
     QDoubleValidator, QIntValidator, QRegExpValidator, QIcon, QPalette,
     QTextDocumentWriter, QKeySequence)
@@ -629,7 +629,7 @@ class QDecimalEdit(QLineEdit, BaseEdit):
 
 class QDateTimeWithCalendarEdit(QDateTimeEdit, BaseEdit):
     def __init__(self, field, parent=None, *args, **kwargs):
-        QDateEdit.__init__(self, parent=parent)
+        QDateTimeEdit.__init__(self, parent=parent)
         BaseEdit.__init__(
             self, is_required=not field.null, field_type=BaseEdit.DATETIME,
             *args, **kwargs)
@@ -670,6 +670,12 @@ class QDateTimeWithCalendarEdit(QDateTimeEdit, BaseEdit):
 
     def get_valor(self, view_format='yyyy-MM-dd hh:mm:ss'):
         return self.date_to_string(view_format)
+
+    def mousePressEvent(self, event):
+        if self.is_null():
+            self.set_valor(QDateTime.currentDateTime())
+            self.setSelectedSection(QDateEdit.DaySection)
+        QDateTimeEdit.mousePressEvent(self, event)
 
     def keyPressEvent(self, event):
         if self.is_null():
@@ -727,6 +733,12 @@ class QDateWithCalendarEdit(QDateEdit, BaseEdit):
         QDateEdit.keyPressEvent(self, event)
         if event.key() == Qt.Key_Delete:
             self.clear()
+
+    def mousePressEvent(self, event):
+        if self.is_null():
+            self.set_valor(QDate.currentDate())
+            self.setSelectedSection(QDateEdit.DaySection)
+        QDateEdit.mousePressEvent(self, event)
 
 
 class QHiddenEdit(QLineEdit, BaseEdit):
