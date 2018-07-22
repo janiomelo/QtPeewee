@@ -1138,9 +1138,10 @@ class QListDialog(QDialog, Centralize):
                 qta.icon('fa.search', color='black'), 'Filtrar')
             button_save.clicked.connect(self.filtrar)
             window_layout.addWidget(button_save)
-        actions = self.adiciona_botoes()
-        window_layout.addWidget(actions)
         self.instancia_lista = self.lista(self)
+        actions = self.adiciona_botoes()
+
+        window_layout.addWidget(actions)
         window_layout.addWidget(self.instancia_lista)
         self.setLayout(window_layout)
         self.center()
@@ -1175,6 +1176,14 @@ class QListDialog(QDialog, Centralize):
             qta.icon('fa.trash', color='black'), 'E&xcluir')
         button_excluir.clicked.connect(self.excluir)
         actions_layout.addWidget(button_excluir)
+
+        if len(self.instancia_lista.actions()) > 0:
+            for a in self.instancia_lista.actions():
+                btn = QPushButton(
+                    qta.icon(a['icon'], color='black'), a['label'])
+                btn.clicked.connect(a['callback'])
+                actions_layout.addWidget(btn)
+
         actions.setLayout(actions_layout)
         return actions
 
@@ -1307,6 +1316,9 @@ class QResultTable(QTableWidget):
 
     def on_click(self):
         pass
+
+    def actions(self):
+        return []
 
     def on_double_click(self):
         self.abrir_formulario(self.selected().id)

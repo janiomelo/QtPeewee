@@ -346,6 +346,19 @@ class TarefasList(QResultTable):
             (Tarefa.projeto, 'cliente'), (Tarefa.data_conclusao, 'dd/MM/yyyy')
         ]
 
+    def actions(self):
+        return [
+            {
+                "label": "&Apontar",
+                "icon": "ei.time",
+                "callback": self.apontar_horas_trabalhadas
+            }
+        ]
+
+    def apontar_horas_trabalhadas(self):
+        a = self.selected()
+        self.abrir_formulario(a)
+
 
 class TarefasListDialog(QTableDialog):
     LIST = TarefasList
