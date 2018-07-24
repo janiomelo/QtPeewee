@@ -7,7 +7,7 @@ import hashlib
 from PyQt5.QtCore import (
     Qt, QDate, QRegExp, QDateTime, QFileInfo)
 from PyQt5.QtGui import (
-    QDoubleValidator, QIntValidator, QRegExpValidator, QIcon, QPalette,
+    QDoubleValidator, QIntValidator, QRegExpValidator, QPalette,
     QTextDocumentWriter, QKeySequence)
 from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QFormLayout, QWidget, QMessageBox, QDateEdit, QDialog,
@@ -152,7 +152,7 @@ class QPrincipal(QMainWindow, Centralize):
         self.setGeometry(100, 100, 800, 600)
         self.setWindowTitle('### DEFINIR ###')
         self.center()
-        self.show()
+        self.showMaximized()
 
 
 class QPeeweeApp(QApplication):
@@ -1145,7 +1145,7 @@ class QListDialog(QDialog, Centralize):
         window_layout.addWidget(actions)
         window_layout.addWidget(self.instancia_lista)
         self.setLayout(window_layout)
-        self.center()
+        self.showMaximized()
 
     def filtrar(self):
         self.instancia_lista.filtros = self.instancia_filtro.filters
@@ -1230,7 +1230,6 @@ class QResultTable(QTableWidget):
         self.filtros = []
         self.update_result_set()
         self.verticalHeader().hide()
-        self.show()
 
     def get_all(self):
         return []
@@ -1339,7 +1338,6 @@ class QTableDialog(QListDialog, Centralize):
         super(QTableDialog, self).__init__()
         super(Centralize, self).__init__()
         self.setWindowTitle(self.TITLE)
-        self.center()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_F5:
