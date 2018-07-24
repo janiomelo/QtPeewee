@@ -144,7 +144,8 @@ class QPrincipal(QMainWindow, Centralize):
         self.menubar = self.menuBar()
         fileMenu = self.new_menu('&Arquivo')
         self.new_action(
-            fileMenu, '&Sair', self.close, icon=QIcon('exit.png'),
+            fileMenu, '&Sair', self.close,
+            icon=qta.icon('fa.sign-out', color='black'),
             tinytxt='Ctrl+Q', tip='Sair da aplicação.')
         self.statusBar().showMessage('Ready')
         # x, y, w, h
