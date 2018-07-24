@@ -179,6 +179,18 @@ class QPeeweeApp(QApplication):
 app = QPeeweeApp(sys.argv, peewee.SqliteDatabase('app.db'))
 
 
+class BaseModel(peewee.Model):
+    class Meta:
+        database = app.db
+
+
+class ExternalModel(peewee.Model):
+
+    @classmethod
+    def get_by_id(cls, pk):
+        return ExternalModel()
+
+
 class ImplementationError(RuntimeError):
     pass
 

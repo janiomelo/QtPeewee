@@ -2,15 +2,11 @@ from qtpeewee import (
     QFormulario, QCharEdit, QFormDialog, QDateWithCalendarEdit, QTableDialog,
     QResultList, QListDialog, QFkComboBox, QResultTable, run, app, QSearchForm,
     QDecimalEdit, QDateTimeWithCalendarEdit, QChoicesComboBox, ChoiceField,
-    QGridForm, QIntEdit, hybrid_property_field, QPreview)
+    QGridForm, QIntEdit, hybrid_property_field, QPreview, BaseModel,
+    ExternalModel)
 from peewee import (
-    Model, CharField, DateField, ForeignKeyField, fn, FloatField,
-    DateTimeField, JOIN)
-
-
-class BaseModel(Model):
-    class Meta:
-        database = app.db
+    JOIN, CharField, DateField, ForeignKeyField, fn, FloatField,
+    DateTimeField, IntegerField)
 
 
 class Tipo(BaseModel):
@@ -73,6 +69,23 @@ class Alocacao(BaseModel):
     recurso = ForeignKeyField(Recurso)
     inicio = DateTimeField()
     fim = DateTimeField()
+
+
+class Issue(ExternalModel):
+    tarefa_id = IntegerField()
+
+
+class FormularioIssue(QFormulario):
+    ENTIDADE = Issue
+
+    def __init__(self):
+        super(FormularioIssue, self).__init__()
+        self.tarefa_id = QIntEdit(field=Issue.tarefa_id)
+
+
+class IssueDialog(QFormDialog):
+    FORMULARIO = FormularioIssue
+    TITLE = 'Cadastro de Issues'
 
 
 class FormularioTipo(QFormulario):
@@ -469,6 +482,11 @@ def abrir_preview(e):
     p.exec()
 
 
+def abrir_issue(e):
+    e = IssueDialog()
+    e.exec()
+
+
 if __name__ == '__main__':
     Tipo.create_table()
     Recurso.create_table()
@@ -505,6 +523,10 @@ if __name__ == '__main__':
     app.formPrincipal.new_action(
         cadastrosMenu, '&Alocação', abrir_alocacoes, tinytxt='Ctrl+A',
         tip='Consultar alocações.')
+
+    app.formPrincipal.new_action(
+        cadastrosMenu, 'I&ssue', abrir_issue, tinytxt='Ctrl+S',
+        tip='Consultar Issues.')
 
     app.formPrincipal.new_action(
         relatoriosMenu, 'Previe&w', abrir_preview, tinytxt='Ctrl+W',
