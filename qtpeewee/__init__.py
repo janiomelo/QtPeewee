@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox, QVBoxLayout, QGroupBox, QListWidget, QListWidgetItem,
     QPushButton, QHBoxLayout, QMainWindow, QAction, QApplication, QComboBox,
     QTableWidget, QTableWidgetItem, QHeaderView, QDateTimeEdit, QGridLayout,
-    QFrame, QFileDialog, QTextEdit, QToolBar)
+    QFrame, QFileDialog, QTextEdit, QToolBar, QDockWidget, QTabWidget)
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
 import peewee
 from playhouse.hybrid import hybrid_property
@@ -90,32 +90,37 @@ class QHBoxLayoutWithMargins(QHBoxLayout):
         self.setContentsMargins(10, 10, 10, 10)
 
 
-class Centralize:
-    def center(self):
-        frameGm = self.frameGeometry()
-        screen = QApplication.desktop().screenNumber(
-            QApplication.desktop().cursor().pos())
-        centerPoint = QApplication.desktop().screenGeometry(screen).center()
-        frameGm.moveCenter(centerPoint)
-        rect = frameGm.topLeft()
-        rect.setY(80)
-        self.move(rect)
-
-
-class QPrincipal(QMainWindow, Centralize):
+class QPrincipal(QMainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
-        Centralize.__init__(self)
+        self.setDockNestingEnabled(True)
+        self.setDockOptions(QMainWindow.ForceTabbedDocks)
         self.import_env_vars()
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         locale.setlocale(locale.LC_ALL, self.env('locale'))
         self.initUI()
+        self.dock_widgets = []
 
     def import_env_vars(self):
-        data = None
         with open('environment.json') as f:
             data = json.load(f)
         self.__env_vars = data
+
+    def add_dock(self, name, class_name=None, object=None):
+        dock = QDockWidget(name)
+        dock.setWidget(class_name() if class_name is not None else object)
+        dock.setFeatures(
+            QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetClosable)
+        dock.visibilityChanged.connect(self.update_dock_positions)
+        if len(self.dock_widgets) > 0:
+            self.tabifyDockWidget(self.dock_widgets[-1], dock)
+        else:
+            self.addDockWidget(Qt.TopDockWidgetArea, dock)
+        self.dock_widgets.append(dock)
+
+    def update_dock_positions(self):
+        if len(self.dock_widgets) > 0 and not self.dock_widgets[-1].isVisible():
+            self.dock_widgets[-1].raise_()
 
     def env(self, key):
         if self.__env_vars is None:
@@ -128,30 +133,30 @@ class QPrincipal(QMainWindow, Centralize):
         return self.menubar.addMenu(label)
 
     def new_action(
-            self, parent, text, event, icon=None, tinytxt=None, tip=None):
+            self, parent, text, form_action, icon=None, tinytxt=None,
+            tip=None):
         if icon is not None:
-            exitAction = QAction(icon, text, self)
+            action = QAction(icon, text, self)
         else:
-            exitAction = QAction(text, self)
+            action = QAction(text, self)
         if tinytxt is not None:
-            exitAction.setShortcut(tinytxt)
+            action.setShortcut(tinytxt)
         if tip is not None:
-            exitAction.setStatusTip(tip)
-        exitAction.triggered.connect(event)
-        parent.addAction(exitAction)
+            action.setStatusTip(tip)
+        action.triggered.connect(lambda: self.add_dock(text, class_name=form_action))
+        parent.addAction(action)
 
     def initUI(self, icon=None):
+        self.statusBar()
         self.menubar = self.menuBar()
         fileMenu = self.new_menu('&Arquivo')
         self.new_action(
             fileMenu, '&Sair', self.close,
             icon=qta.icon('fa.sign-out', color='black'),
             tinytxt='Ctrl+Q', tip='Sair da aplicação.')
-        self.statusBar().showMessage('Ready')
         # x, y, w, h
         self.setGeometry(100, 100, 800, 600)
         self.setWindowTitle('### DEFINIR ###')
-        self.center()
         self.showMaximized()
 
 
@@ -926,13 +931,12 @@ class QSearchForm(QGridForm):
         return []
 
 
-class QFormDialog(QDialog, Centralize):
+class QFormWidget(QWidget):
     FORMULARIO = QFormulario
     TITLE = 'FORM EDIT'
 
     def __init__(self, pk=None):
-        super(QFormDialog, self).__init__()
-        super(Centralize, self).__init__()
+        QWidget.__init__(self)
         self.createFormGroupBox()
         self.pk = pk
 
@@ -953,7 +957,6 @@ class QFormDialog(QDialog, Centralize):
         self.setLayout(l)
 
         self.setWindowTitle(self.TITLE)
-        self.setFixedWidth(800)
         self.adjustSize()
 
         try:
@@ -962,7 +965,6 @@ class QFormDialog(QDialog, Centralize):
             objeto = None
 
         self.instancia_formulario = self.form.get(objeto)
-        self.center()
 
     def add_buttons(self, mainLayout):
         if len(self.buttons()) == 0:
@@ -1010,10 +1012,13 @@ class QFormDialog(QDialog, Centralize):
                 else:
                     v.destaca()
 
+    def reject(self, *args, **kwargs):
+        pass
+
     def accept(self, *args, **kwargs):
         if self.is_valid():
             self.salva_dados()
-            super(QFormDialog, self).accept(*args, **kwargs)
+            super(QFormWidget, self).accept(*args, **kwargs)
         else:
             notifica_erro(
                 text='Preencha todos os campos obrigatórios',
@@ -1037,9 +1042,9 @@ class QFormDialog(QDialog, Centralize):
     def set_layout_default(self, layout):
         self.formGroupBox.setLayout(layout)
 
-    def exec(self):
+    def show(self):
         self.set_layout_default(self.instancia_formulario)
-        super(QFormDialog, self).exec()
+        super(QFormWidget, self).show()
 
 
 class MyQListWidgetItem(QListWidgetItem):
@@ -1061,7 +1066,7 @@ class MyQListWidgetItem(QListWidgetItem):
 
 
 class QResultList(QListWidget):
-    FORM = QFormDialog
+    FORM = QFormWidget
 
     def __init__(self, parent=None):
         QListWidget.__init__(self, parent=parent)
@@ -1117,19 +1122,18 @@ class QResultList(QListWidget):
     def abrir_formulario(self, id=None):
         formulario = self.FORM(id)
         formulario.buttonBox.accepted.connect(self.update_result_set)
-        formulario.exec()
+        formulario.show()
+        app.formPrincipal.add_dock(formulario.windowTitle(), object=formulario)
 
 
-class QListDialog(QDialog, Centralize):
+class QListShow(QWidget):
     LIST = QResultList
     FORM_FILTER = None
     TITLE = 'LIST'
 
     def __init__(self):
-        super(QListDialog, self).__init__()
-        super(Centralize, self).__init__()
+        super(QListShow, self).__init__()
         self.instancia_filtro = None
-        self.setFixedWidth(800)
         self.adjustSize()
         self.setWindowTitle(self.TITLE)
         window_layout = QVBoxLayoutWithMargins()
@@ -1220,7 +1224,7 @@ class QListDialog(QDialog, Centralize):
 
 
 class QResultTable(QTableWidget):
-    FORM = QFormDialog
+    FORM = QFormWidget
 
     def __init__(self, parent=None):
         QTableWidget.__init__(self, parent=parent)
@@ -1326,24 +1330,24 @@ class QResultTable(QTableWidget):
     def abrir_formulario(self, id=None):
         formulario = self.FORM(id)
         formulario.buttonBox.accepted.connect(self.update_result_set)
-        formulario.exec()
+        formulario.show()
+        app.formPrincipal.add_dock(formulario.windowTitle(), object=formulario)
 
 
-class QTableDialog(QListDialog, Centralize):
+class QTableShow(QListShow):
     LIST = QResultTable
     FORM_FILTER = None
     TITLE = 'TABLE'
 
     def __init__(self):
-        super(QTableDialog, self).__init__()
-        super(Centralize, self).__init__()
+        super(QTableShow, self).__init__()
         self.setWindowTitle(self.TITLE)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_F5:
             self.instancia_lista.update_result_set()
         else:
-            super(QTableDialog, self).keyPressEvent(event)
+            super(QTableShow, self).keyPressEvent(event)
 
 
 class User(peewee.Model):

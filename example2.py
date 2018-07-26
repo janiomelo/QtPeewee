@@ -1,6 +1,6 @@
 from qtpeewee import (
-    QFormulario, QCharEdit, QFormDialog, QDateWithCalendarEdit, QTableDialog,
-    QResultList, QListDialog, QFkComboBox, QResultTable, run, app, QSearchForm,
+    QFormulario, QCharEdit, QFormWidget, QDateWithCalendarEdit, QTableShow,
+    QResultList, QListShow, QFkComboBox, QResultTable, run, app, QSearchForm,
     QDecimalEdit, QDateTimeWithCalendarEdit, QChoicesComboBox, ChoiceField,
     QGridForm, QIntEdit, hybrid_property_field, QPreview)
 from peewee import (
@@ -83,7 +83,7 @@ class FormularioTipo(QFormulario):
         self.nome = QCharEdit(field=Tipo.nome)
 
 
-class TipoDialog(QFormDialog):
+class TipoWidget(QFormWidget):
     FORMULARIO = FormularioTipo
     TITLE = 'Cadastro de Tipo de Recurso'
 
@@ -94,11 +94,11 @@ class FormularioRecurso(QFormulario):
     def fields(self):
         self.nome = QCharEdit(field=Recurso.nome)
         self.tipo = QFkComboBox(
-            Tipo, field=Recurso.tipo, form_new=TipoDialog,
-            form_edit=TipoDialog)
+            Tipo, field=Recurso.tipo, form_new=TipoWidget,
+            form_edit=TipoWidget)
 
 
-class RecursoDialog(QFormDialog):
+class RecursoWidget(QFormWidget):
     FORMULARIO = FormularioRecurso
     TITLE = 'Cadastro de Recurso'
 
@@ -111,7 +111,7 @@ class FormularioCliente(QFormulario):
         self.nome = QCharEdit(field=Cliente.nome)
 
 
-class ClienteDialog(QFormDialog):
+class ClienteWidget(QFormWidget):
     FORMULARIO = FormularioCliente
     TITLE = 'Cadastro de Cliente'
 
@@ -122,12 +122,12 @@ class FormularioProjeto(QFormulario):
     def fields(self):
         self.nome = QCharEdit(field=Projeto.nome)
         self.cliente = QFkComboBox(
-            Cliente, field=Projeto.cliente, form_new=ClienteDialog,
-            form_edit=ClienteDialog)
+            Cliente, field=Projeto.cliente, form_new=ClienteWidget,
+            form_edit=ClienteWidget)
         self.prazo = QDateWithCalendarEdit(field=Projeto.prazo)
 
 
-class ProjetoDialog(QFormDialog):
+class ProjetoWidget(QFormWidget):
     FORMULARIO = FormularioProjeto
     TITLE = 'Cadastro de Projeto'
 
@@ -137,8 +137,8 @@ class FormularioTarefa(QFormulario):
 
     def fields(self):
         self.projeto = QFkComboBox(
-            Projeto, field=Tarefa.projeto, form_new=ProjetoDialog,
-            form_edit=ProjetoDialog)
+            Projeto, field=Tarefa.projeto, form_new=ProjetoWidget,
+            form_edit=ProjetoWidget)
         self.titulo = QCharEdit(field=Tarefa.titulo)
         self.descricao = QCharEdit(field=Tarefa.descricao)
         self.data_limite = QDateWithCalendarEdit(field=Tarefa.data_limite)
@@ -150,7 +150,7 @@ class FormularioTarefa(QFormulario):
             field=Tarefa.data_conclusao)
 
 
-class TarefaDialog(QFormDialog):
+class TarefaWidget(QFormWidget):
     FORMULARIO = FormularioTarefa
     TITLE = 'Cadastro de Tarefa'
 
@@ -160,17 +160,17 @@ class FormularioAlocacao(QGridForm):
 
     def fields(self):
         self.tarefa = QFkComboBox(
-            Tarefa, field=Alocacao.tarefa, form_new=TarefaDialog,
-            form_edit=TarefaDialog)
+            Tarefa, field=Alocacao.tarefa, form_new=TarefaWidget,
+            form_edit=TarefaWidget)
         self.recurso = QFkComboBox(
-            Recurso, field=Alocacao.recurso, form_new=RecursoDialog,
-            form_edit=RecursoDialog, x=1, y=0)
+            Recurso, field=Alocacao.recurso, form_new=RecursoWidget,
+            form_edit=RecursoWidget, x=1, y=0)
         self.inicio = QDateTimeWithCalendarEdit(
             field=Alocacao.inicio, x=0, y=1)
         self.fim = QDateTimeWithCalendarEdit(field=Alocacao.fim, x=1, y=1)
 
 
-class AlocacaoDialog(QFormDialog):
+class AlocacaoWidget(QFormWidget):
     FORMULARIO = FormularioAlocacao
     TITLE = 'Cadastro de Alocação'
 
@@ -189,7 +189,7 @@ class TipoFilterForm(QSearchForm):
 
 
 class TipoList(QResultList):
-    FORM = TipoDialog
+    FORM = TipoWidget
 
     def get_value(self, obj):
         return obj.nome
@@ -201,7 +201,7 @@ class TipoList(QResultList):
         return Tipo.select()
 
 
-class TipoListDialog(QListDialog):
+class TipoListShow(QListShow):
     LIST = TipoList
     FORM_FILTER = TipoFilterForm
     TITLE = 'Consulta de tipos de recurso'
@@ -226,7 +226,7 @@ class RecursosFilterForm(QSearchForm):
 
 
 class RecursosList(QResultList):
-    FORM = RecursoDialog
+    FORM = RecursoWidget
 
     def get_value(self, obj):
         return obj.nome
@@ -238,7 +238,7 @@ class RecursosList(QResultList):
         return Recurso.select()
 
 
-class RecursosListDialog(QListDialog):
+class RecursosListShow(QListShow):
     LIST = RecursosList
     FORM_FILTER = RecursosFilterForm
     TITLE = 'Consulta de recursos'
@@ -258,7 +258,7 @@ class ClientesFilterForm(QSearchForm):
 
 
 class ClientesList(QResultList):
-    FORM = ClienteDialog
+    FORM = ClienteWidget
 
     def get_value(self, obj):
         return '({0}) {1}'.format(obj.sigla, obj.nome)
@@ -270,7 +270,7 @@ class ClientesList(QResultList):
         return Cliente.select()
 
 
-class ClientesListDialog(QListDialog):
+class ClientesListShow(QListShow):
     LIST = ClientesList
     FORM_FILTER = ClientesFilterForm
     TITLE = 'Consulta de clientes'
@@ -290,7 +290,7 @@ class ProjetosFilterForm(QSearchForm):
 
 
 class ProjetosList(QResultList):
-    FORM = ProjetoDialog
+    FORM = ProjetoWidget
 
     def get_value(self, obj):
         return '{0} - Prazo: {1}'.format(
@@ -303,7 +303,7 @@ class ProjetosList(QResultList):
         return Projeto.select()
 
 
-class ProjetosListDialog(QListDialog):
+class ProjetosListShow(QListShow):
     LIST = ProjetosList
     FORM_FILTER = ProjetosFilterForm
     TITLE = 'Consulta de projetos'
@@ -328,7 +328,7 @@ class TarefasFilterForm(QSearchForm):
 
 
 class TarefasList(QResultTable):
-    FORM = TarefaDialog
+    FORM = TarefaWidget
 
     def order(self):
         return fn.lower(Tarefa.prioridade)
@@ -360,7 +360,7 @@ class TarefasList(QResultTable):
         self.abrir_formulario(a)
 
 
-class TarefasListDialog(QTableDialog):
+class TarefasListDialog(QTableShow):
     LIST = TarefasList
     FORM_FILTER = TarefasFilterForm
     TITLE = 'Consulta de tarefas'
@@ -391,7 +391,7 @@ class AlocacoesFilterForm(QSearchForm):
 
 
 class AlocacoesList(QResultTable):
-    FORM = AlocacaoDialog
+    FORM = AlocacaoWidget
 
     def order(self):
         return fn.lower(Alocacao.inicio)
@@ -408,7 +408,7 @@ class AlocacoesList(QResultTable):
         ]
 
 
-class AlocacoesListDialog(QTableDialog):
+class AlocacoesListDialog(QTableShow):
     LIST = AlocacoesList
     FORM_FILTER = AlocacoesFilterForm
     TITLE = 'Consulta de alocações'
@@ -434,41 +434,6 @@ class QPreviewProjetos(QPreview):
             n_tarefas_pendentes=n_tarefas_pendentes)
 
 
-def abrir_recursos(e):
-    dialog = RecursosListDialog()
-    dialog.exec()
-
-
-def abrir_tarefas(e):
-    dialog = TarefasListDialog()
-    dialog.exec()
-
-
-def abrir_clientes(e):
-    dialog = ClientesListDialog()
-    dialog.exec()
-
-
-def abrir_projetos(e):
-    dialog = ProjetosListDialog()
-    dialog.exec()
-
-
-def abrir_alocacoes(e):
-    dialog = AlocacoesListDialog()
-    dialog.exec()
-
-
-def abrir_tipo_recurso(e):
-    dialog = TipoListDialog()
-    dialog.exec()
-
-
-def abrir_preview(e):
-    p = QPreviewProjetos()
-    p.exec()
-
-
 if __name__ == '__main__':
     Tipo.create_table()
     Recurso.create_table()
@@ -483,31 +448,31 @@ if __name__ == '__main__':
     relatoriosMenu = app.formPrincipal.new_menu('&Relatórios')
 
     app.formPrincipal.new_action(
-        cadastrosMenu, 'T&ipos de Recurso', abrir_tipo_recurso,
+        cadastrosMenu, 'T&ipos de Recurso', RecursosListShow,
         tinytxt='Ctrl+I', tip='Consulta ao cadastro de tipos de recurso.')
 
     app.formPrincipal.new_action(
-        cadastrosMenu, '&Recursos', abrir_recursos, tinytxt='Ctrl+R',
+        cadastrosMenu, '&Recursos', TipoListShow, tinytxt='Ctrl+R',
         tip='Consulta ao cadastro de recursos.')
 
     app.formPrincipal.new_action(
-        cadastrosMenu, '&Clientes', abrir_clientes, tinytxt='Ctrl+C',
+        cadastrosMenu, '&Clientes', ClientesListShow, tinytxt='Ctrl+C',
         tip='Consulta ao cadastro de clientes.')
 
     app.formPrincipal.new_action(
-        cadastrosMenu, '&Projetos', abrir_projetos, tinytxt='Ctrl+P',
+        cadastrosMenu, '&Projetos', ProjetosListShow, tinytxt='Ctrl+P',
         tip='Consulta ao cadastro de projetos.')
 
     app.formPrincipal.new_action(
-        cadastrosMenu, '&Tarefas', abrir_tarefas, tinytxt='Ctrl+T',
+        cadastrosMenu, '&Tarefas', TarefasListDialog, tinytxt='Ctrl+T',
         tip='Consulta ao cadastro de tarefas.')
 
     app.formPrincipal.new_action(
-        cadastrosMenu, '&Alocação', abrir_alocacoes, tinytxt='Ctrl+A',
+        cadastrosMenu, '&Alocação', AlocacoesListDialog, tinytxt='Ctrl+A',
         tip='Consultar alocações.')
 
     app.formPrincipal.new_action(
-        relatoriosMenu, 'Previe&w', abrir_preview, tinytxt='Ctrl+W',
+        relatoriosMenu, 'Previe&w', QPreviewProjetos, tinytxt='Ctrl+W',
         tip='Exibir preview')
 
     run()

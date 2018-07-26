@@ -8,7 +8,7 @@ from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication
 from qtpeewee import (
     QCharEdit, QDateWithCalendarEdit, QIntEdit, QHiddenEdit, MyQListWidgetItem,
-    QFormulario, QDialogButtonBox, QDecimalEdit, QRegExpEdit, QFormDialog,
+    QFormulario, QDialogButtonBox, QDecimalEdit, QRegExpEdit, QFormWidget,
     QResultList)
 from peewee import SqliteDatabase, Model, CharField, IntegerField, DateField
 
@@ -234,7 +234,7 @@ class FormularioUser(QFormulario):
         self.data = QDateWithCalendarEdit(column_name='data')
 
 
-class UserDialog(QFormDialog):
+class UserWidget(QFormWidget):
     FORMULARIO = FormularioUser
 
 
@@ -262,7 +262,7 @@ def user_factory(nome=None, username=None, email=None, idade=None, data=None):
 
 class QFormDialogTest(unittest.TestCase):
     def setUp(self):
-        self.form = UserDialog
+        self.form = UserWidget
 
     def limpa_base(self):
         User.delete().execute()

@@ -1,6 +1,6 @@
 from qtpeewee import (
-    QFormulario, QCharEdit, QFormDialog, QDateWithCalendarEdit, QTableDialog,
-    QResultList, QListDialog, QFkComboBox, QResultTable, run, app, QSearchForm,
+    QFormulario, QCharEdit, QFormWidget, QDateWithCalendarEdit, QTableShow,
+    QResultList, QListShow, QFkComboBox, QResultTable, run, app, QSearchForm,
     QDateTimeWithCalendarEdit)
 from peewee import (
     Model, CharField, DateField, ForeignKeyField, fn, DateTimeField)
@@ -38,7 +38,7 @@ class FormularioTipo(QFormulario):
         self.descricao = QCharEdit(field=Tipo.descricao)
 
 
-class TipoDialog(QFormDialog):
+class TipoWidget(QFormWidget):
     FORMULARIO = FormularioTipo
     TITLE = 'Editar Tipo'
 
@@ -53,7 +53,7 @@ class FormularioCliente(QFormulario):
         self.entrada = QDateTimeWithCalendarEdit(field=Cliente.entrada)
 
 
-class ClienteDialog(QFormDialog):
+class ClienteWidget(QFormWidget):
     FORMULARIO = FormularioCliente
     TITLE = 'Editar Cliente'
 
@@ -67,19 +67,19 @@ class FormularioFuncionario(QFormulario):
         self.tipo = QFkComboBox(entity=Tipo, field=Funcionario.tipo)
 
 
-class FuncionarioDialog(QFormDialog):
+class FuncionarioWidget(QFormWidget):
     FORMULARIO = FormularioFuncionario
     TITLE = 'Editar Funcionário'
 
     def buttons(self):
         return [{
             "label": "Tipo",
-            "form": TipoDialog,
+            "form": TipoWidget,
             "pk": self.pk,
             "condition": None
         }, {
             "label": "Funcionário",
-            "form": FuncionarioDialog,
+            "form": FuncionarioWidget,
             "pk": None,
             "condition": self.pk is not None
         }]
@@ -105,7 +105,7 @@ class ClientesFilterForm(QSearchForm):
 
 
 class ClientesList(QResultTable):
-    FORM = ClienteDialog
+    FORM = ClienteWidget
 
     def order(self):
         return fn.lower(Cliente.nome)
@@ -120,7 +120,7 @@ class ClientesList(QResultTable):
         ]
 
 
-class ClientesListDialog(QTableDialog):
+class ClientesListDialog(QTableShow):
     LIST = ClientesList
     FORM_FILTER = ClientesFilterForm
     TITLE = 'Lista de clientes'
@@ -145,7 +145,7 @@ class FuncionarioFilterForm(QSearchForm):
 
 
 class FuncionariosList(QResultList):
-    FORM = FuncionarioDialog
+    FORM = FuncionarioWidget
 
     def get_value(self, obj):
         return obj.nome
@@ -157,7 +157,7 @@ class FuncionariosList(QResultList):
         return Funcionario.select()
 
 
-class FuncionariosListDialog(QListDialog):
+class FuncionariosListShow(QListShow):
     LIST = FuncionariosList
     FORM_FILTER = FuncionarioFilterForm
     TITLE = 'Lista de funcionários'
@@ -177,7 +177,7 @@ class TiposFilterForm(QSearchForm):
 
 
 class TiposList(QResultList):
-    FORM = TipoDialog
+    FORM = TipoWidget
 
     def get_value(self, obj):
         return obj.descricao
@@ -189,7 +189,7 @@ class TiposList(QResultList):
         return Tipo.select()
 
 
-class TiposListDialog(QListDialog):
+class TiposListShow(QListShow):
     LIST = TiposList
     FORM_FILTER = TiposFilterForm
     TITLE = 'Lista de tipos'
@@ -201,12 +201,12 @@ def abrir_cliente(e):
 
 
 def abrir_funcionario(e):
-    dialog = FuncionariosListDialog()
+    dialog = FuncionariosListShow()
     dialog.exec_()
 
 
 def abrir_tipo(e):
-    dialog = TiposListDialog()
+    dialog = TiposListShow()
     dialog.exec_()
 
 
