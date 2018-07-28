@@ -305,6 +305,23 @@ QSpinBox::down-button:pressed {
     border-image: url(images/spindown_pressed.png) 1;
 }
 
-QCalendarWidget {
-    background-color: white;
+QCalendarWidget QAbstractItemView:enabled {
+	color: rgb(118, 118, 118);
+	selection-background-color: rgb(64, 64, 64);
+	selection-color: rgb(0, 255, 0);
+}
+
+QCalendarWidget QTableView {
+	background-color: rgb(0, 255, 0);
+}
+
+QTableWidget QHeaderView::section {
+    background-color: none;
+    padding: 4px;
+    font-size: 15px;
+    font-weight: bold;
+    border-style: none;
+    border-bottom: 1px solid #fffff8;
+    border-right: 1px solid #fffff8;
+    border-top: 1px solid #fffff8;
 }
