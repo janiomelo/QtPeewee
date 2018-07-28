@@ -5,7 +5,7 @@ import sys
 import hashlib
 
 from PyQt5.QtCore import (
-    Qt, QDate, QRegExp, QDateTime, QFileInfo)
+    Qt, QDate, QRegExp, QDateTime, QFileInfo, QSize)
 from PyQt5.QtGui import (
     QDoubleValidator, QIntValidator, QRegExpValidator, QPalette,
     QTextDocumentWriter, QKeySequence)
@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox, QVBoxLayout, QGroupBox, QListWidget, QListWidgetItem,
     QPushButton, QHBoxLayout, QMainWindow, QAction, QApplication, QComboBox,
     QTableWidget, QTableWidgetItem, QHeaderView, QDateTimeEdit, QGridLayout,
-    QFrame, QFileDialog, QTextEdit, QToolBar, QDockWidget, QTabWidget)
+    QFrame, QFileDialog, QTextEdit, QToolBar, QDockWidget, QStackedLayout, QDesktopWidget)
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
 import peewee
 from playhouse.hybrid import hybrid_property
@@ -28,6 +28,16 @@ def empty(str_test):
 
 def title_label(label):
     return label.title().replace('_', ' ')
+
+def stretch(widget):
+    widget.setMinimumSize(QSize(0, 0))
+    widget.setMaximumSize(QSize(16777215, 16777215))
+    return widget
+
+
+def stretch_label(widget):
+    widget.setAlignment(Qt.AlignRight)
+    return stretch(widget)
 
 
 class CalculatedField:
@@ -212,8 +222,6 @@ class QPreview(QDialog):
         super(QPreview, self).__init__(parent)
         if self.template() is None:
             raise Exception("TEMPLATE is required.")
-        self.setFixedWidth(800)
-        self.setFixedHeight(700)
         self.init()
 
     def template(self):
@@ -811,7 +819,8 @@ class QFormBase:
 
     def add_field_in_row(self, name, field):
         if (not isinstance(field, QHiddenEdit) and
-                isinstance(field, QWidget)):
+                isinstance(field, QWidget) and
+                not name[:1] == '_'):
             valor = self.__valor_campo(name)
             if valor is not None:
                 field.set_valor(valor)
@@ -830,20 +839,24 @@ class QFormBase:
                     self.clear_date, fa_icon='fa.trash', field_param=True)
             label = QLabel(title_label(name))
             label.setFixedWidth(len(label.text()) * 10)
-            self.insert_in_layout(label, field)
+            self.insert_in_layout(label, stretch(field))
 
     def insert_in_layout(self, label, field):
         raise NotImplementedError
 
     def novo(self, field):
-        form = field.form_new()
+        form = field.form_edit()
         form.buttonBox.accepted.connect(field.update_values)
-        form.exec()
+        form.show()
+        app.formPrincipal.add_dock(
+            'Incluir {0}'.format(field.entity.__name__), object=form)
 
     def edit(self, field):
         form = field.form_edit(field.get_valor())
         form.buttonBox.accepted.connect(field.update_values)
-        form.exec()
+        form.show()
+        app.formPrincipal.add_dock(
+            'Editar {0}'.format(field.entity.__name__), object=form)
 
     def clear_date(self, field):
         field.clear()
@@ -856,30 +869,43 @@ class QFormBase:
         return b
 
 
-class QGridForm(QGridLayout, QFormBase):
+class QGridForm(QStackedLayout, QFormBase):
 
     def __init__(self, objeto=None, has_id=True):
-        QGridLayout.__init__(self)
+        QStackedLayout.__init__(self)
         QFormBase.__init__(self, objeto=objeto, has_id=has_id)
         self.setSpacing(6)
         self.setContentsMargins(0, 10, 0, 10)
+        gl = QGridLayout()
+        self.__w = QWidget()
+        self.__w.setLayout(gl)
+        self.addWidget(self.__w)
+        self.lines = 0
+
+    def update_layout_height(self, nrows):
+        self.__w.setFixedHeight(nrows * 40)
+
+    def tamanho_tela(self):
+        return QDesktopWidget().screenGeometry().width()
 
     def insert_in_layout(self, label, field):
-        label.setFixedWidth(80)
-        label.setAlignment(Qt.AlignRight)
         w = QWidget()
         w.setStyleSheet('background: none')
-        w.setFixedWidth(330)
+        t = (self.tamanho_tela() / 2) - 70
+        w.setFixedWidth(t)
         w.setFixedHeight(26)
         w.setBackgroundRole(QPalette.HighlightedText)
         l = QHBoxLayoutWithoutMargins()
-        l.addWidget(label)
-        l.addWidget(field)
+        l.addWidget(stretch_label(label))
+        l.addWidget(stretch(field))
         w.setLayout(l)
         if isinstance(field, QFieldWithActionsButton):
             field = field.field
-        self.addWidget(
+        self.__w.layout().addWidget(
             w, field.y, field.x, field.ny, field.nx)
+        if self.lines != (field.y + 1):
+            self.lines += 1
+        self.update_layout_height(self.lines)
 
 
 class QFormulario(QFormLayout, QFormBase):
@@ -1018,7 +1044,6 @@ class QFormWidget(QWidget):
     def accept(self, *args, **kwargs):
         if self.is_valid():
             self.salva_dados()
-            super(QFormWidget, self).accept(*args, **kwargs)
         else:
             notifica_erro(
                 text='Preencha todos os campos obrigatórios',
@@ -1156,15 +1181,16 @@ class QListShow(QWidget):
         self.instancia_lista.update_result_set()
 
     def adiciona_filtro(self):
-        gb_layout = QGroupBox("Filtro")
+        gb = QGroupBox("Filtro")
         self.instancia_filtro = self.form_filter.get(None)
-        gb_layout.setLayout(self.instancia_filtro)
-
+        self.instancia_filtro.update_layout_height(2)
+        gb.setLayout(self.instancia_filtro)
+        gb.setFixedHeight(120)
         f = QFrame(self)
         mainLayout = QVBoxLayoutWithMargins()
-        mainLayout.addWidget(gb_layout)
+        mainLayout.addWidget(gb)
         f.setLayout(mainLayout)
-
+        f.setFixedHeight(140)
         return f
 
     def adiciona_botoes(self):

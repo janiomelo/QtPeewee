@@ -448,11 +448,11 @@ if __name__ == '__main__':
     relatoriosMenu = app.formPrincipal.new_menu('&Relatórios')
 
     app.formPrincipal.new_action(
-        cadastrosMenu, 'T&ipos de Recurso', RecursosListShow,
+        cadastrosMenu, 'T&ipos de Recurso', TipoListShow,
         tinytxt='Ctrl+I', tip='Consulta ao cadastro de tipos de recurso.')
 
     app.formPrincipal.new_action(
-        cadastrosMenu, '&Recursos', TipoListShow, tinytxt='Ctrl+R',
+        cadastrosMenu, '&Recursos', RecursosListShow, tinytxt='Ctrl+R',
         tip='Consulta ao cadastro de recursos.')
 
     app.formPrincipal.new_action(
