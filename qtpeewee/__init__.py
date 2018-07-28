@@ -100,6 +100,15 @@ class QHBoxLayoutWithMargins(QHBoxLayout):
         self.setContentsMargins(10, 10, 10, 10)
 
 
+class QDockWidgetN(QDockWidget):
+    def __init__(self, *args):
+        QDockWidget.__init__(self, *args)
+
+    def setWidget(self, widget):
+        widget.dock = self
+        QDockWidget.setWidget(self, widget)
+
+
 class QPrincipal(QMainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
@@ -117,7 +126,7 @@ class QPrincipal(QMainWindow):
         self.__env_vars = data
 
     def add_dock(self, name, class_name=None, object=None):
-        dock = QDockWidget(name)
+        dock = QDockWidgetN(name)
         dock.setWidget(class_name() if class_name is not None else object)
         dock.setFeatures(
             QDockWidget.DockWidgetMovable | QDockWidget.DockWidgetClosable)
@@ -223,6 +232,10 @@ class QPreview(QDialog):
         if self.template() is None:
             raise Exception("TEMPLATE is required.")
         self.init()
+
+    def close(self):
+        super().close()
+        self.dock.close()
 
     def template(self):
         return None
@@ -437,6 +450,12 @@ class BaseEdit:
             self.retira_destaque()
         else:
             self.destaca()
+
+    def get_valor(self):
+        raise NotImplementedError
+
+    def set_valor(self, valor):
+        raise NotImplementedError
 
 
 class QCharEdit(QLineEdit, BaseEdit):
@@ -790,7 +809,6 @@ class QFieldWithActionsButton(QWidget):
             add_button.clicked.connect(action)
         add_button.setFixedWidth(25)
         add_button.setFixedHeight(25)
-        self.layout.insertWidget(1, add_button)
 
 
 class QFormBase:
@@ -961,8 +979,9 @@ class QFormWidget(QWidget):
     FORMULARIO = QFormulario
     TITLE = 'FORM EDIT'
 
-    def __init__(self, pk=None):
+    def __init__(self, pk=None, dock=None):
         QWidget.__init__(self)
+        self.dock = dock
         self.createFormGroupBox()
         self.pk = pk
 
@@ -1039,9 +1058,12 @@ class QFormWidget(QWidget):
                     v.destaca()
 
     def reject(self, *args, **kwargs):
-        pass
+        if self.dock is not None:
+            self.dock.close()
 
     def accept(self, *args, **kwargs):
+        if self.dock is not None:
+            self.dock.close()
         if self.is_valid():
             self.salva_dados()
         else:
@@ -1056,7 +1078,7 @@ class QFormWidget(QWidget):
             form.objeto = form.ENTIDADE()
         for k, v in form.__dict__.items():
             if (not isinstance(v, QHiddenEdit) and
-                    isinstance(v, QWidget)):
+                    isinstance(v, BaseEdit)):
                 setattr(form.objeto, k, v.get_valor())
         form.objeto.save()
 
