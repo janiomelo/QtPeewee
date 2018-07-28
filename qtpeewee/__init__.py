@@ -162,6 +162,7 @@ class QPrincipal(QMainWindow):
             action.setShortcut(tinytxt)
         if tip is not None:
             action.setStatusTip(tip)
+        text = text.replace('&', '')
         action.triggered.connect(lambda: self.add_dock(text, class_name=form_action))
         parent.addAction(action)
 
