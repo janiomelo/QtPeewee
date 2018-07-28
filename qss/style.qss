@@ -17,7 +17,8 @@ QMainWindow > .QWidget {
 
 /* mainFrame won't have this border-image since we have
    explicitly set it to 'none' using a more specific selector. */
-QFrame, QLineEdit, QComboBox[editable="true"], QSpinBox {
+QFrame, QLineEdit, QComboBox[editable="true"], QSpinBox,
+QDateTimeEdit, QDateEdit {
     border-image: url(images/frame.png) 4;
     border-width: 3;
 }
@@ -178,7 +179,8 @@ QComboBox[editable="false"]::down-arrow:on {
 
 /* Customize editable comboboxes. */
 
-QComboBox[editable="true"] {
+QComboBox[editable="true"],
+QDateTimeEdit, QDateEdit{
     padding-right: 16px;
 }
 
