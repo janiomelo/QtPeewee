@@ -187,7 +187,7 @@ class QPeeweeApp(QApplication):
         self.__principal = self.PRINCIPAL_FORM()
         self.__db = db
         self.count_field = 0
-        self.setStyleSheet(open("style.qss", "r").read())
+        self.setStyleSheet(open("qss/style.qss", "r").read())
 
     def set_title(self, title):
         self.formPrincipal.setWindowTitle(title)
