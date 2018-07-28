@@ -802,13 +802,14 @@ class QFieldWithActionsButton(QWidget):
     def add_button(self, action, fa_icon='fa.plus', field_param=False):
         icon = qta.icon(fa_icon, color='black')
         add_button = QPushButton(icon, '')
-        add_button.setStyleSheet('font-size: 12px')
+        add_button.setStyleSheet('font-size: 12px; min-width: 0px;')
         if field_param:
             add_button.clicked.connect(lambda: action(self.field))
         else:
             add_button.clicked.connect(action)
         add_button.setFixedWidth(25)
         add_button.setFixedHeight(25)
+        self.layout.insertWidget(1, add_button)
 
 
 class QFormBase:
@@ -856,8 +857,7 @@ class QFormBase:
                 field.add_button(
                     self.clear_date, fa_icon='fa.trash', field_param=True)
             label = QLabel(title_label(name))
-            label.setFixedWidth(len(label.text()) * 10)
-            self.insert_in_layout(label, stretch(field))
+            self.insert_in_layout(label, field)
 
     def insert_in_layout(self, label, field):
         raise NotImplementedError
@@ -908,7 +908,6 @@ class QGridForm(QStackedLayout, QFormBase):
 
     def insert_in_layout(self, label, field):
         w = QWidget()
-        w.setStyleSheet('background: none')
         t = (self.tamanho_tela() / 2) - 70
         w.setFixedWidth(t)
         w.setFixedHeight(26)
