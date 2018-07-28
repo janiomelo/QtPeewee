@@ -1057,15 +1057,24 @@ class QFormWidget(QWidget):
                 else:
                     v.destaca()
 
+    def before_out(self):
+        pass
+
+    def before_save(self):
+        pass
+
     def reject(self, *args, **kwargs):
+        self.before_out()
         if self.dock is not None:
             self.dock.close()
 
     def accept(self, *args, **kwargs):
-        if self.dock is not None:
-            self.dock.close()
+        self.before_save()
         if self.is_valid():
             self.salva_dados()
+            if self.dock is not None:
+                self.before_out()
+                self.dock.close()
         else:
             notifica_erro(
                 text='Preencha todos os campos obrigatórios',
