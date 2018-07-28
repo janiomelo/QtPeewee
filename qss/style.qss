@@ -325,3 +325,42 @@ QTableWidget QHeaderView::section {
     border-right: 1px solid #fffff8;
     border-top: 1px solid #fffff8;
 }
+
+
+/* DockWidget */
+
+QDockWidget {
+    titlebar-close-icon: url(images/close.png);
+    titlebar-normal-icon: url(images/undock.png);
+    font-size: 15px;
+    font-weight: bold;
+}
+
+QDockWidget::title {
+    text-align: right;
+    padding-right: 20px;
+    padding-top: 5px;
+}
+
+QDockWidget::close-button, QDockWidget::float-button {
+    padding: 0px;
+    icon-size: 16px; /* maximum icon size */
+}
+
+QDockWidget::close-button:pressed, QDockWidget::float-button:pressed {
+    padding: 4px;
+}
+
+QDockWidget::close-button {
+    subcontrol-origin: margin;
+    position: absolute;
+    top: 5px; right: 10px; bottom: 0px;
+    width: 20px;
+}
+
+QDockWidget::float-button {
+    subcontrol-origin: margin;
+    position: absolute;
+    top: 0px; left: 16px; bottom: 0px;
+    width: 14px;
+}

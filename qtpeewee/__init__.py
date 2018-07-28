@@ -931,7 +931,6 @@ class QFormulario(QFormLayout, QFormBase):
         QFormBase.__init__(self, objeto=objeto, has_id=has_id)
         app.count_field = 0
         self.setSpacing(6)
-        # self.setLabelAlignment(Qt.AlignRight)
         self.setContentsMargins(10, 10, 10, 10)
 
     def insert_in_layout(self, label, field):
