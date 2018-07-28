@@ -297,3 +297,7 @@ QSpinBox::down-button:hover {
 QSpinBox::down-button:pressed {
     border-image: url(images/spindown_pressed.png) 1;
 }
+
+QCalendarWidget {
+    background-color: white;
+}
