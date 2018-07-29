@@ -14,7 +14,8 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox, QVBoxLayout, QGroupBox, QListWidget, QListWidgetItem,
     QPushButton, QHBoxLayout, QMainWindow, QAction, QApplication, QComboBox,
     QTableWidget, QTableWidgetItem, QHeaderView, QDateTimeEdit, QGridLayout,
-    QFrame, QFileDialog, QTextEdit, QToolBar, QDockWidget, QStackedLayout, QDesktopWidget)
+    QFrame, QFileDialog, QTextEdit, QToolBar, QDockWidget, QStackedLayout,
+    QDesktopWidget)
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
 import peewee
 from playhouse.hybrid import hybrid_property
@@ -28,6 +29,7 @@ def empty(str_test):
 
 def title_label(label):
     return label.title().replace('_', ' ')
+
 
 def stretch(widget):
     widget.setMinimumSize(QSize(0, 0))
@@ -1320,6 +1322,9 @@ class QResultTable(QTableWidget):
         labels = []
         for i, c in enumerate(self.columns()):
             label = c[0].name if isinstance(c, tuple) else c.name
+            if (isinstance(c, tuple) and
+                    isinstance(c[0], peewee.ForeignKeyField)):
+                label = c[1] + ' ' + label
             labels.append(title_label(label))
             header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
         self.setHorizontalHeaderLabels(labels)
