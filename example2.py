@@ -42,7 +42,7 @@ class Projeto(BaseModel):
     prazo = DateField()
 
     def __str__(self):
-        return str(self.nome)
+        return str(self.cliente.sigla) + ' - ' +str(self.nome)
 
 
 class Tarefa(BaseModel):
