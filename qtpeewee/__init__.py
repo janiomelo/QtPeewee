@@ -946,14 +946,15 @@ class QFormulario(QFormLayout, QFormBase):
 
 
 class QSearchForm(QGridForm):
-    def __init__(self):
+    def __init__(self, fields: list):
         super(QSearchForm, self).__init__(has_id=False)
         self._filters = []
+        self.__fields = fields
 
     def _constroi(self):
         x = 0
         y = 0
-        for f in self.fields():
+        for f in self.__fields:
             entity = f["entity"]
             if f["type"] == QFkComboBox:
                 obj_field = f["type"](
@@ -979,6 +980,13 @@ class QSearchForm(QGridForm):
 
     def fields(self):
         return []
+
+    @classmethod
+    def get(cls, objeto=None, fields=None):
+        b = cls(fields if fields is not None else [])
+        b.objeto = objeto
+        b._constroi()
+        return b
 
 
 class QFormWidget(QWidget):
@@ -1190,7 +1198,6 @@ class QResultList(QListWidget):
 
 class QListShow(QWidget):
     LIST = QResultList
-    FORM_FILTER = None
     TITLE = 'LIST'
 
     def __init__(self):
@@ -1199,7 +1206,7 @@ class QListShow(QWidget):
         self.adjustSize()
         self.setWindowTitle(self.TITLE)
         window_layout = QVBoxLayoutWithMargins()
-        if self.form_filter is not None:
+        if len(self.filters()) > 0:
             window_layout.addWidget(self.adiciona_filtro())
             button_save = QPushButton(
                 qta.icon('fa.search', color='black'), 'Filtrar')
@@ -1213,13 +1220,16 @@ class QListShow(QWidget):
         self.setLayout(window_layout)
         self.showMaximized()
 
+    def filters(self):
+        return []
+
     def filtrar(self):
         self.instancia_lista.filtros = self.instancia_filtro.filters
         self.instancia_lista.update_result_set()
 
     def adiciona_filtro(self):
         gb = QGroupBox("Filtro")
-        self.instancia_filtro = self.form_filter.get(None)
+        self.instancia_filtro = QSearchForm.get(None, self.filters())
         self.instancia_filtro.update_layout_height(2)
         gb.setLayout(self.instancia_filtro)
         gb.setFixedHeight(120)

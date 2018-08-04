@@ -54,17 +54,6 @@ class PFWidget(QFormWidget):
     TITLE = 'Editar Pessoa Física'
 
 
-class PFFilterForm(QSearchForm):
-
-    def fields(self):
-        return [{
-            "entity": PessoaFisica.nome,
-            "type": QCharEdit,
-            "operator": "%",
-            "label": "Nome"
-        }]
-
-
 class PFList(QResultList):
     FORM = PFWidget
 
@@ -80,8 +69,15 @@ class PFList(QResultList):
 
 class PFListShow(QListShow):
     LIST = PFList
-    FORM_FILTER = PFFilterForm
     TITLE = 'Lista de pessoas físicas'
+
+    def filters(self):
+        return [{
+            "entity": PessoaFisica.nome,
+            "type": QCharEdit,
+            "operator": "%",
+            "label": "Nome"
+        }]
 
 
 if __name__ == '__main__':
