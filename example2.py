@@ -4,8 +4,9 @@ from qtpeewee import (
     QDecimalEdit, QDateTimeWithCalendarEdit, QChoicesComboBox, ChoiceField,
     QGridForm, QIntEdit, hybrid_property_field, QPreview)
 from peewee import (
-    Model, CharField, DateField, ForeignKeyField, fn, FloatField,
-    DateTimeField, JOIN)
+    Model, CharField, DateField, ForeignKeyField, fn, FloatField, DoesNotExist,
+    DateTimeField, JOIN, TextField)
+from datetime import datetime, timedelta
 
 
 class BaseModel(Model):
@@ -61,11 +62,35 @@ class Tarefa(BaseModel):
     @hybrid_property_field
     def status(self):
         if self.data_conclusao is None:
+            if self.esta_em_andamento():
+                return 'Em andamento'
             return 'Pendente'
         return 'Concluída'
 
     def __str__(self):
         return str(self.titulo)
+
+    @hybrid_property_field
+    def tempo(self):
+        try:
+            tarefa = Tarefa.raw(
+                'SELECT COALESCE(SUM((julianday(apontamento.fim)-julianday(apontamento.inicio)) * 86400.0), 0) arg '
+                'FROM tarefa LEFT JOIN apontamento ON apontamento.tarefa_id=tarefa.id '
+                'WHERE apontamento.fim IS NOT NULL AND tarefa.id = %i' % self.id
+            ).get()
+            return str(timedelta(seconds=tarefa.arg)).split('.')[0]
+        except (DoesNotExist, TypeError):
+            return 0
+
+    def esta_em_andamento(self):
+        try:
+            apontamenos = Tarefa.raw(
+                'select * from apontamento where tarefa_id = %i and fim is null;' %
+                self.id
+            ).get()
+            return True if apontamenos is not None else False
+        except DoesNotExist:
+            return False
 
 
 class Alocacao(BaseModel):
@@ -73,6 +98,14 @@ class Alocacao(BaseModel):
     recurso = ForeignKeyField(Recurso)
     inicio = DateTimeField()
     fim = DateTimeField()
+
+
+class Apontamento(BaseModel):
+    tarefa = ForeignKeyField(Tarefa)
+    recurso = ForeignKeyField(Recurso)
+    inicio = DateTimeField()
+    fim = DateTimeField(null=True)
+    observacao = TextField(null=True)
 
 
 class FormularioTipo(QFormulario):
@@ -342,22 +375,35 @@ class TarefasList(QResultTable):
         return [
             Tarefa.titulo, (Tarefa.data_limite, 'dd/MM/yyyy'),
             (Tarefa.prioridade, 'name'), Tarefa.realizado,
-            (Tarefa.projeto, 'nome'), Tarefa.status,
+            (Tarefa.projeto, 'nome'), Tarefa.status, Tarefa.tempo,
             (Tarefa.projeto, 'cliente'), (Tarefa.data_conclusao, 'dd/MM/yyyy')
         ]
 
     def actions(self):
         return [
             {
-                "label": "&Apontar",
+                "label": "",
                 "icon": "ei.time",
-                "callback": self.apontar_horas_trabalhadas
+                "callback": self.registrar_tempo
             }
         ]
 
-    def apontar_horas_trabalhadas(self):
-        a = self.selected()
-        self.abrir_formulario(a)
+    def registrar_tempo(self):
+        tarefa = self.selected()
+        if tarefa is None:
+            return
+        if tarefa.esta_em_andamento():
+            apontamento = Apontamento.get((Apontamento.tarefa==tarefa) & (Apontamento.fim.is_null()))
+            apontamento.fim = datetime.now()
+        else:
+            apontamento = Apontamento(
+                tarefa=tarefa,
+                recurso=Recurso.get(Recurso.id==1),
+                inicio=datetime.now(),
+                observacoes=None
+            )
+        apontamento.save()
+        self.update_result_set()
 
 
 class TarefasListDialog(QTableShow):
@@ -422,7 +468,9 @@ class QPreviewProjetos(QPreview):
         query = Projeto.select(
             Projeto.id, Projeto.nome, Projeto.cliente,
             fn.Count(Tarefa.id).alias('n_tarefas_pendentes')
-        ).join(Tarefa, JOIN.LEFT_OUTER).group_by(
+        ).join(Tarefa, JOIN.LEFT_OUTER).where(
+            Tarefa.data_conclusao >> None
+        ).group_by(
             Projeto.id, Projeto.nome, Projeto.cliente
         ).order_by(Projeto.nome)
 
@@ -441,6 +489,7 @@ if __name__ == '__main__':
     Projeto.create_table()
     Tarefa.create_table()
     Alocacao.create_table()
+    Apontamento.create_table()
 
     app.set_title('Meus Projetos')
 
