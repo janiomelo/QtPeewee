@@ -207,6 +207,11 @@ class QPeeweeApp(QApplication):
 app = QPeeweeApp(sys.argv, peewee.SqliteDatabase('app.db'))
 
 
+class BaseModel(peewee.Model):
+    class Meta:
+        database = app.db
+
+
 class ImplementationError(RuntimeError):
     pass
 

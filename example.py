@@ -1,14 +1,9 @@
 from qtpeewee import (
     QFormulario, QCharEdit, QFormWidget, QDateWithCalendarEdit, QTableShow,
     QResultList, QListShow, QFkComboBox, QResultTable, run, app, QSearchForm,
-    QDateTimeWithCalendarEdit)
+    QDateTimeWithCalendarEdit, BaseModel)
 from peewee import (
-    Model, CharField, DateField, ForeignKeyField, fn, DateTimeField)
-
-
-class BaseModel(Model):
-    class Meta:
-        database = app.db
+    CharField, DateField, ForeignKeyField, fn, DateTimeField)
 
 
 class Tipo(BaseModel):

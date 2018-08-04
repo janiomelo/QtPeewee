@@ -2,16 +2,11 @@ from qtpeewee import (
     QFormulario, QCharEdit, QFormWidget, QDateWithCalendarEdit, QTableShow,
     QResultList, QListShow, QFkComboBox, QResultTable, run, app, QSearchForm,
     QDecimalEdit, QDateTimeWithCalendarEdit, QChoicesComboBox, ChoiceField,
-    QGridForm, QIntEdit, hybrid_property_field, QPreview)
+    QGridForm, QIntEdit, hybrid_property_field, QPreview, BaseModel)
 from peewee import (
-    Model, CharField, DateField, ForeignKeyField, fn, FloatField, DoesNotExist,
+    CharField, DateField, ForeignKeyField, fn, FloatField, DoesNotExist,
     DateTimeField, JOIN, TextField)
 from datetime import datetime, timedelta
-
-
-class BaseModel(Model):
-    class Meta:
-        database = app.db
 
 
 class Tipo(BaseModel):
