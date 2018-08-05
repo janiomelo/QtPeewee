@@ -44,6 +44,7 @@ class Associado(BaseModel):
 
 class FormularioPF(QFormulario):
     ENTIDADE = PerfilCobranca
+    TITLE = 'Editar Pessoa Física'
 
     def meta(self):
         return {
@@ -56,7 +57,6 @@ class FormularioPF(QFormulario):
 
 class PFWidget(QFormWidget):
     FORMULARIO = FormularioPF
-    TITLE = 'Editar Pessoa Física'
 
 
 class PFListShow(QListShow):

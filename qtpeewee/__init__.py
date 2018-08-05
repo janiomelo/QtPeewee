@@ -1024,7 +1024,6 @@ class QSearchForm(QGridForm):
 
 class QFormWidget(QWidget):
     FORMULARIO = QFormulario
-    TITLE = 'FORM EDIT'
 
     def __init__(self, pk=None, dock=None):
         QWidget.__init__(self)
@@ -1048,7 +1047,6 @@ class QFormWidget(QWidget):
         l.addWidget(f)
         self.setLayout(l)
 
-        self.setWindowTitle(self.TITLE)
         self.adjustSize()
 
         try:
@@ -1057,6 +1055,7 @@ class QFormWidget(QWidget):
             objeto = None
 
         self.instancia_formulario = self.form.get(objeto)
+        self.setWindowTitle(self.form.TITLE)
 
     def add_buttons(self, mainLayout):
         if len(self.buttons()) == 0:
