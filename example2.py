@@ -105,119 +105,85 @@ class Apontamento(BaseModel):
 
 class FormularioTipo(QFormulario):
     ENTIDADE = Tipo
-
-    def __init__(self):
-        super(FormularioTipo, self).__init__()
-        self.nome = QCharEdit(field=Tipo.nome)
-
-
-class TipoWidget(QFormWidget):
-    FORMULARIO = FormularioTipo
     TITLE = 'Cadastro de Tipo de Recurso'
 
 
 class FormularioRecurso(QFormulario):
     ENTIDADE = Recurso
-
-    def fields(self):
-        self.nome = QCharEdit(field=Recurso.nome)
-        self.tipo = QFkComboBox(
-            Tipo, field=Recurso.tipo, form_new=TipoWidget,
-            form_edit=TipoWidget)
-
-
-class RecursoWidget(QFormWidget):
-    FORMULARIO = FormularioRecurso
     TITLE = 'Cadastro de Recurso'
+
+    def meta(self):
+        return {
+            'tipo': {
+                'form_new': FormularioTipo,
+                'form_edit': FormularioTipo
+            }
+        }
 
 
 class FormularioCliente(QFormulario):
     ENTIDADE = Cliente
-
-    def fields(self):
-        self.sigla = QCharEdit(field=Cliente.sigla)
-        self.nome = QCharEdit(field=Cliente.nome)
-
-
-class ClienteWidget(QFormWidget):
-    FORMULARIO = FormularioCliente
     TITLE = 'Cadastro de Cliente'
 
 
 class FormularioProjeto(QFormulario):
     ENTIDADE = Projeto
-
-    def fields(self):
-        self.nome = QCharEdit(field=Projeto.nome)
-        self.cliente = QFkComboBox(
-            Cliente, field=Projeto.cliente, form_new=ClienteWidget,
-            form_edit=ClienteWidget)
-        self.prazo = QDateWithCalendarEdit(field=Projeto.prazo)
-
-
-class ProjetoWidget(QFormWidget):
-    FORMULARIO = FormularioProjeto
     TITLE = 'Cadastro de Projeto'
+
+    def meta(self):
+        return {
+            'cliente': {
+                'form_new': FormularioCliente,
+                'form_edit': FormularioCliente
+            }
+        }
 
 
 class FormularioTarefa(QFormulario):
     ENTIDADE = Tarefa
-
-    def fields(self):
-        self.projeto = QFkComboBox(
-            Projeto, field=Tarefa.projeto, form_new=ProjetoWidget,
-            form_edit=ProjetoWidget)
-        self.titulo = QCharEdit(field=Tarefa.titulo)
-        self.descricao = QCharEdit(field=Tarefa.descricao)
-        self.data_limite = QDateWithCalendarEdit(field=Tarefa.data_limite)
-        self.prioridade = QChoicesComboBox(field=Tarefa.prioridade)
-        self.prioridade.set_valor(1)
-        self.realizado = QDecimalEdit(
-            column_name='realizado')
-        self.data_conclusao = QDateWithCalendarEdit(
-            field=Tarefa.data_conclusao)
-
-
-class TarefaWidget(QFormWidget):
-    FORMULARIO = FormularioTarefa
     TITLE = 'Cadastro de Tarefa'
+
+    def meta(self):
+        # self.realizado = QDecimalEdit(column_name='realizado')
+        self.prioridade.set_valor(1)
+        return {
+            'projeto': {
+                'form_new': FormularioProjeto,
+                'form_edit': FormularioProjeto
+            }
+        }
 
 
 class FormularioAlocacao(QGridForm):
     ENTIDADE = Alocacao
-
-    def fields(self):
-        self.tarefa = QFkComboBox(
-            Tarefa, field=Alocacao.tarefa, form_new=TarefaWidget,
-            form_edit=TarefaWidget)
-        self.recurso = QFkComboBox(
-            Recurso, field=Alocacao.recurso, form_new=RecursoWidget,
-            form_edit=RecursoWidget, x=1, y=0)
-        self.inicio = QDateTimeWithCalendarEdit(
-            field=Alocacao.inicio, x=0, y=1)
-        self.fim = QDateTimeWithCalendarEdit(field=Alocacao.fim, x=1, y=1)
-
-
-class AlocacaoWidget(QFormWidget):
-    FORMULARIO = FormularioAlocacao
     TITLE = 'Cadastro de Alocação'
 
+    def meta(self):
+        return {
+            'tarefa': {
+                'form_new': FormularioTarefa,
+                'form_edit': FormularioTarefa
+            },
+            'recurso': {
+                'form_new': FormularioRecurso,
+                'form_edit': FormularioRecurso,
+                'x': 1,
+                'y': 0
+            },
+            'inicio': {
+                'x': 0,
+                'y': 1
+            },
+            'fim': {
+                'x': 1,
+                'y': 1
+            }
+        }
 
-# -----------------------------------------------------------------------------
 
-class TipoFilterForm(QSearchForm):
-
-    def fields(self):
-        return [{
-            "entity": Tipo.nome,
-            "type": QCharEdit,
-            "operator": "%",
-            "label": "Nome"
-        }]
-
-
-class TipoList(QResultList):
-    FORM = TipoWidget
+class TipoListShow(QListShow):
+    TITLE = 'Consulta de tipos de recurso'
+    FORM = FormularioTipo
 
     def get_value(self, obj):
         return obj.nome
@@ -228,18 +194,29 @@ class TipoList(QResultList):
     def get_all(self):
         return Tipo.select()
 
+    def filters(self):
+        return [{
+            "entity": Tipo.nome,
+            "type": QCharEdit,
+            "operator": "%",
+            "label": "Nome"
+        }]
 
-class TipoListShow(QListShow):
-    LIST = TipoList
-    FORM_FILTER = TipoFilterForm
-    TITLE = 'Consulta de tipos de recurso'
 
-# -----------------------------------------------------------------------------
+class RecursosListShow(QListShow):
+    FORM = FormularioRecurso
+    TITLE = 'Consulta de recursos'
 
+    def get_value(self, obj):
+        return obj.nome
 
-class RecursosFilterForm(QSearchForm):
+    def order(self):
+        return Recurso.nome
 
-    def fields(self):
+    def get_all(self):
+        return Recurso.select()
+
+    def filters(self):
         return [{
             "entity": Recurso.nome,
             "type": QCharEdit,
@@ -253,40 +230,17 @@ class RecursosFilterForm(QSearchForm):
         }]
 
 
-class RecursosList(QResultList):
-    FORM = RecursoWidget
+class ClientesListShow(QListShow):
+    FORM = FormularioCliente
+    TITLE = 'Consulta de clientes'
 
-    def get_value(self, obj):
-        return obj.nome
-
-    def order(self):
-        return Recurso.nome
-
-    def get_all(self):
-        return Recurso.select()
-
-
-class RecursosListShow(QListShow):
-    LIST = RecursosList
-    FORM_FILTER = RecursosFilterForm
-    TITLE = 'Consulta de recursos'
-
-
-# -----------------------------------------------------------------------------
-
-class ClientesFilterForm(QSearchForm):
-
-    def fields(self):
+    def filters(self):
         return [{
             "entity": Cliente.nome,
             "type": QCharEdit,
             "operator": "%",
             "label": "Nome"
         }]
-
-
-class ClientesList(QResultList):
-    FORM = ClienteWidget
 
     def get_value(self, obj):
         return '({0}) {1}'.format(obj.sigla, obj.nome)
@@ -298,27 +252,9 @@ class ClientesList(QResultList):
         return Cliente.select()
 
 
-class ClientesListShow(QListShow):
-    LIST = ClientesList
-    FORM_FILTER = ClientesFilterForm
-    TITLE = 'Consulta de clientes'
-
-#----------------------------------------------------------------------------
-
-
-class ProjetosFilterForm(QSearchForm):
-
-    def fields(self):
-        return [{
-            "entity": Projeto.nome,
-            "type": QCharEdit,
-            "operator": "%",
-            "label": "Nome"
-        }]
-
-
-class ProjetosList(QResultList):
-    FORM = ProjetoWidget
+class ProjetosListShow(QListShow):
+    TITLE = 'Consulta de projetos'
+    FORM = FormularioProjeto
 
     def get_value(self, obj):
         return '{0} - Prazo: {1}'.format(
@@ -330,33 +266,18 @@ class ProjetosList(QResultList):
     def get_all(self):
         return Projeto.select()
 
-
-class ProjetosListShow(QListShow):
-    LIST = ProjetosList
-    FORM_FILTER = ProjetosFilterForm
-    TITLE = 'Consulta de projetos'
-
-#-------------------------------------------------------
-
-
-class TarefasFilterForm(QSearchForm):
-
-    def fields(self):
+    def filters(self):
         return [{
-            "entity": Tarefa.projeto,
-            "type": QFkComboBox,
-            "operator": "=",
-            "label": "Projeto"
-        }, {
-            "entity": Tarefa.realizado,
-            "type": QIntEdit,
-            "operator": "<",
-            "label": "% Real. <"
+            "entity": Projeto.nome,
+            "type": QCharEdit,
+            "operator": "%",
+            "label": "Nome"
         }]
 
 
-class TarefasList(QResultTable):
-    FORM = TarefaWidget
+class TarefasListDialog(QTableShow):
+    TITLE = 'Consulta de tarefas'
+    FORM = FormularioTarefa
 
     def order(self):
         return fn.lower(Tarefa.prioridade)
@@ -371,7 +292,8 @@ class TarefasList(QResultTable):
             Tarefa.titulo, (Tarefa.data_limite, 'dd/MM/yyyy'),
             (Tarefa.prioridade, 'name'), Tarefa.realizado,
             (Tarefa.projeto, 'nome'), Tarefa.status, Tarefa.tempo,
-            (Tarefa.projeto, 'cliente'), (Tarefa.data_conclusao, 'dd/MM/yyyy')
+            (Tarefa.projeto, 'cliente'),
+            (Tarefa.data_conclusao, 'dd/MM/yyyy')
         ]
 
     def actions(self):
@@ -388,31 +310,54 @@ class TarefasList(QResultTable):
         if tarefa is None:
             return
         if tarefa.esta_em_andamento():
-            apontamento = Apontamento.get((Apontamento.tarefa==tarefa) & (Apontamento.fim.is_null()))
+            apontamento = Apontamento.get(
+                (Apontamento.tarefa == tarefa) & (
+                    Apontamento.fim.is_null()))
             apontamento.fim = datetime.now()
         else:
             apontamento = Apontamento(
                 tarefa=tarefa,
-                recurso=Recurso.get(Recurso.id==1),
+                recurso=Recurso.get(Recurso.id == 1),
                 inicio=datetime.now(),
                 observacoes=None
             )
         apontamento.save()
         self.update_result_set()
 
+    def filters(self):
+        return [{
+            "entity": Tarefa.projeto,
+            "type": QFkComboBox,
+            "operator": "=",
+            "label": "Projeto"
+        }, {
+            "entity": Tarefa.realizado,
+            "type": QIntEdit,
+            "operator": "<",
+            "label": "% Real. <"
+        }]
 
-class TarefasListDialog(QTableShow):
-    LIST = TarefasList
-    FORM_FILTER = TarefasFilterForm
-    TITLE = 'Consulta de tarefas'
 
+class AlocacoesListDialog(QTableShow):
+    TITLE = 'Consulta de alocações'
+    FORM = FormularioAlocacao
 
-#-------------------------------------------------------
+    def order(self):
+        return fn.lower(Alocacao.inicio)
 
+    def get_all(self):
+        return Alocacao.select().join(
+            Tarefa, on=(Tarefa.id == Alocacao.tarefa)).join(
+            Recurso, on=(Recurso.id == Alocacao.recurso))
 
-class AlocacoesFilterForm(QSearchForm):
+    def columns(self):
+        return [
+            (Alocacao.tarefa, 'titulo'), (Alocacao.recurso, 'nome'),
+            (Alocacao.inicio, 'dd-MM hh:mm'),
+            (Alocacao.fim, 'dd-MM hh:mm')
+        ]
 
-    def fields(self):
+    def filters(self):
         return [{
             "entity": Alocacao.recurso,
             "type": QFkComboBox,
@@ -429,30 +374,6 @@ class AlocacoesFilterForm(QSearchForm):
             "operator": "=",
             "label": "Tipo"
         }]
-
-
-class AlocacoesList(QResultTable):
-    FORM = AlocacaoWidget
-
-    def order(self):
-        return fn.lower(Alocacao.inicio)
-
-    def get_all(self):
-        return Alocacao.select().join(
-            Tarefa, on=(Tarefa.id == Alocacao.tarefa)).join(
-            Recurso, on=(Recurso.id == Alocacao.recurso))
-
-    def columns(self):
-        return [
-            (Alocacao.tarefa, 'titulo'), (Alocacao.recurso, 'nome'),
-            (Alocacao.inicio, 'dd-MM hh:mm'), (Alocacao.fim, 'dd-MM hh:mm')
-        ]
-
-
-class AlocacoesListDialog(QTableShow):
-    LIST = AlocacoesList
-    FORM_FILTER = AlocacoesFilterForm
-    TITLE = 'Consulta de alocações'
 
 
 class QPreviewProjetos(QPreview):
