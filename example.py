@@ -43,10 +43,15 @@ class Associado(BaseModel):
 
 
 class FormularioPF(QFormulario):
-    ENTIDADE = PessoaFisica
+    ENTIDADE = PerfilCobranca
 
-    def fields(self):
-        self.nome = QCharEdit(field=PessoaFisica.nome)
+    def meta(self):
+        return {
+            'pessoa_fisica': {
+                'form_new': None,
+                'form_edit': None
+            }
+        }
 
 
 class PFWidget(QFormWidget):

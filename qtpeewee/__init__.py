@@ -820,6 +820,21 @@ class QFieldWithActionsButton(QWidget):
         self.layout.insertWidget(1, add_button)
 
 
+FIELD_TO_EDIT = {
+    peewee.CharField: QCharEdit,
+    peewee.DateTimeField: QDateTimeWithCalendarEdit,
+    peewee.TextField: QTextEdit,
+    peewee.DecimalField: QDecimalEdit,
+    peewee.ForeignKeyField: QFkComboBox,
+    peewee.DateField: QDateWithCalendarEdit,
+    ChoiceField: QChoicesComboBox,
+    peewee.FloatField: QDecimalEdit,
+    peewee.IntegerField: QIntEdit,
+    peewee.IPField: QCharEdit,
+    peewee.ManyToManyField: None,
+    peewee.BooleanField: None,
+}
+
 class QFormBase:
     ENTIDADE = None
 
@@ -830,8 +845,24 @@ class QFormBase:
             self.id = QHiddenEdit(column_name='id', is_required=False)
         self.objeto = objeto
 
+    def meta(self):
+        return {}
+
     def fields(self):
-        pass
+        for k, v in self.ENTIDADE.__dict__.items():
+            if (isinstance(v, peewee.FieldAccessor) and k != 'id'):
+                field = getattr(self.ENTIDADE, k)
+                cls = FIELD_TO_EDIT[field.__class__]
+                if cls is None:
+                    raise NotImplementedError(
+                        'Field does not have a corresponding Edit.')
+                if cls == QFkComboBox:
+                    meta = self.meta()[k] if k in self.meta().keys() else {}
+                    edit = cls(
+                        entity=field.rel_model, field=field, **meta)
+                else:
+                    edit = cls(field=field)
+                setattr(self, k, edit)
 
     def __valor_campo(self, campo):
         if self.objeto is not None:
@@ -840,7 +871,9 @@ class QFormBase:
     def _constroi(self):
         itens = sorted(
             self.__dict__.items(),
-            key=lambda k: k[1].order if isinstance(k[1], BaseEdit) else 0)
+            key=lambda k: k[1].order if isinstance(
+                k[1], BaseEdit
+            ) else 0)
         for k, v in itens:
             self.add_field_in_row(k, v)
 
