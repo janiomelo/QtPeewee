@@ -1136,8 +1136,6 @@ class MyQListWidgetItem(QListWidgetItem):
 
 
 class QResultList(QListWidget):
-    FORM = QFormWidget
-
     def __init__(self, parent=None):
         QListWidget.__init__(self, parent=parent)
         self.filtros = []
@@ -1146,9 +1144,13 @@ class QResultList(QListWidget):
         self.itemDoubleClicked.connect(self.on_double_click)
 
     def get_all(self):
+        if self.parent() is not None:
+            return self.parent().get_all()
         return []
 
     def order(self):
+        if self.parent() is not None:
+            return self.parent().order()
         return None
 
     def get_all_with_filter(self):
@@ -1175,6 +1177,8 @@ class QResultList(QListWidget):
             self.addItem(MyQListWidgetItem(self, objeto=item))
 
     def get_value(self, obj) -> str:
+        if self.parent() is not None:
+            return self.parent().get_value(obj)
         return str(obj)
 
     def selected(self):
@@ -1190,13 +1194,14 @@ class QResultList(QListWidget):
         self.abrir_formulario(self.selected().id)
 
     def abrir_formulario(self, id=None):
-        formulario = self.FORM(id)
+        formulario = self.parent().FORM(id)
         formulario.buttonBox.accepted.connect(self.update_result_set)
         formulario.show()
         app.formPrincipal.add_dock(formulario.windowTitle(), object=formulario)
 
 
 class QListShow(QWidget):
+    FORM = QFormWidget
     LIST = QResultList
     TITLE = 'LIST'
 
@@ -1222,6 +1227,15 @@ class QListShow(QWidget):
 
     def filters(self):
         return []
+
+    def get_all(self):
+        return []
+
+    def order(self):
+        return None
+
+    def get_value(self, obj):
+        return 'UNDEFINED'
 
     def filtrar(self):
         self.instancia_lista.filtros = self.instancia_filtro.filters

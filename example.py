@@ -54,22 +54,9 @@ class PFWidget(QFormWidget):
     TITLE = 'Editar Pessoa Física'
 
 
-class PFList(QResultList):
-    FORM = PFWidget
-
-    def get_value(self, obj):
-        return obj.nome
-
-    def order(self):
-        return PessoaFisica.nome
-
-    def get_all(self):
-        return PessoaFisica.select()
-
-
 class PFListShow(QListShow):
-    LIST = PFList
     TITLE = 'Lista de pessoas físicas'
+    FORM = PFWidget
 
     def filters(self):
         return [{
@@ -78,6 +65,15 @@ class PFListShow(QListShow):
             "operator": "%",
             "label": "Nome"
         }]
+
+    def get_all(self):
+        return PessoaFisica.select()
+
+    def order(self):
+        return PessoaFisica.nome
+
+    def get_value(self, obj):
+        return obj.nome
 
 
 if __name__ == '__main__':
