@@ -1377,6 +1377,16 @@ class QResultTable(QTableWidget):
             resultlist = resultlist.order_by(self.order())
         return resultlist
 
+    def get_all(self):
+        if self.parent() is not None:
+            return self.parent().get_all()
+        return []
+
+    def order(self):
+        if self.parent() is not None:
+            return self.parent().order()
+        return None
+
     def columns(self):
         return []
 
@@ -1452,10 +1462,13 @@ class QResultTable(QTableWidget):
         self.abrir_formulario(self.selected().id)
 
     def abrir_formulario(self, id=None):
-        formulario = self.FORM(id)
-        formulario.buttonBox.accepted.connect(self.update_result_set)
+        formulario = QFormWidget(pk=id,
+                                 formulario=self.parent().FORM)
+        formulario.buttonBox.accepted.connect(
+            self.update_result_set)
         formulario.show()
-        app.formPrincipal.add_dock(formulario.windowTitle(), object=formulario)
+        app.formPrincipal.add_dock(formulario.windowTitle(),
+                                   object=formulario)
 
 
 class QTableShow(QListShow):
