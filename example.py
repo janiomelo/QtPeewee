@@ -51,14 +51,6 @@ class FormularioPF(QFormulario):
     ENTIDADE = PessoaFisica
     TITLE = 'Editar Pessoa Física'
 
-    def meta(self):
-        return {
-            'pessoa_fisica': {
-                'form_new': None,
-                'form_edit': None
-            }
-        }
-
 
 class FormularioPJ(QFormulario):
     ENTIDADE = PessoaJuridica
@@ -68,6 +60,18 @@ class FormularioPJ(QFormulario):
 class FormularioAssociado(QFormulario):
     ENTIDADE = Associado
     TITLE = 'Editar Associado'
+
+    def meta(self):
+        return {
+            'pessoa_fisica': {
+                'form_new': FormularioPF,
+                'form_edit': FormularioPF
+            },
+            'pessoa_juridica': {
+                'form_new': FormularioPJ,
+                'form_edit': FormularioPJ
+            }
+        }
 
 
 class AssociadoListShow(QListShow):

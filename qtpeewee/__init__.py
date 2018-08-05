@@ -906,18 +906,21 @@ class QFormBase:
         raise NotImplementedError
 
     def novo(self, field):
-        form = field.form_edit()
-        form.buttonBox.accepted.connect(field.update_values)
-        form.show()
+        formulario = QFormWidget(formulario=field.form_edit)
+        formulario.buttonBox.accepted.connect(field.update_values)
+        formulario.show()
         app.formPrincipal.add_dock(
-            'Incluir {0}'.format(field.entity.__name__), object=form)
+            'Incluir {0}'.format(field.entity.__name__),
+            object=formulario)
 
     def edit(self, field):
-        form = field.form_edit(field.get_valor())
-        form.buttonBox.accepted.connect(field.update_values)
-        form.show()
+        formulario = QFormWidget(
+            pk=field.get_valor(), formulario=field.form_edit)
+        formulario.buttonBox.accepted.connect(field.update_values)
+        formulario.show()
         app.formPrincipal.add_dock(
-            'Editar {0}'.format(field.entity.__name__), object=form)
+            'Editar {0}'.format(field.entity.__name__),
+            object=formulario)
 
     def clear_date(self, field):
         field.clear()
