@@ -557,6 +557,8 @@ class QFkComboBox(QComboBox, BaseEdit):
 
     def set_valor(self, id):
         i = 0
+        if not self.is_required:
+            i += 1
         for obj in self.values:
             if obj.get_id() == id:
                 self.setCurrentIndex(i)
@@ -564,9 +566,9 @@ class QFkComboBox(QComboBox, BaseEdit):
 
     def get_valor(self):
         try:
-            i = self.currentIndex()
+            i = self.currentIndex() - 1
             if not self.is_required:
-                i = i - 1 if i > 0 else 0
+                i -= 1
             return self.values[i]
         except Exception:
             return None
@@ -1319,7 +1321,7 @@ class QListShow(QWidget):
     def excluir(self, *args, **kwargs):
         selecionado = self.instancia_lista.selected()
         if selecionado is not None:
-            entidade = self.instancia_lista.FORM.FORMULARIO.ENTIDADE
+            entidade = self.FORM.ENTIDADE
             sql = entidade.delete().where(entidade.id == selecionado.id)
 
             op = notifica_confirmacao(

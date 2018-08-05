@@ -41,6 +41,11 @@ class Associado(BaseModel):
     pessoa_juridica = ForeignKeyField(PessoaJuridica, null=True)
     pessoa_fisica = ForeignKeyField(PessoaFisica, null=True)
 
+    def __str__(self):
+        if self.pessoa_fisica is not None:
+            return self.pessoa_fisica.nome
+        return self.pessoa_juridica.razao_social
+
 
 class FormularioPF(QFormulario):
     ENTIDADE = PessoaFisica
@@ -58,6 +63,22 @@ class FormularioPF(QFormulario):
 class FormularioPJ(QFormulario):
     ENTIDADE = PessoaJuridica
     TITLE = 'Editar Pessoa Jurídica'
+
+
+class FormularioAssociado(QFormulario):
+    ENTIDADE = Associado
+    TITLE = 'Editar Associado'
+
+
+class AssociadoListShow(QListShow):
+    TITLE = 'Lista de associados'
+    FORM = FormularioAssociado
+
+    def get_value(self, obj):
+        return str(obj)
+
+    def get_all(self):
+        return Associado.select()
 
 
 class PJListShow(QListShow):
@@ -113,6 +134,11 @@ if __name__ == '__main__':
     app.formPrincipal.new_action(
         cadastroMenu, 'Pessoas &Jurídicas', PJListShow,
         tinytxt='Ctrl+J', tip='Consulta ao cadastro de pessoas jurídicas.'
+    )
+
+    app.formPrincipal.new_action(
+        cadastroMenu, '&Associados', AssociadoListShow,
+        tinytxt='Ctrl+A'
     )
 
     run()
