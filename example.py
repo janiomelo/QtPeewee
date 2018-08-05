@@ -43,7 +43,7 @@ class Associado(BaseModel):
 
 
 class FormularioPF(QFormulario):
-    ENTIDADE = PerfilCobranca
+    ENTIDADE = PessoaFisica
     TITLE = 'Editar Pessoa Física'
 
     def meta(self):
@@ -55,13 +55,25 @@ class FormularioPF(QFormulario):
         }
 
 
-class PFWidget(QFormWidget):
-    FORMULARIO = FormularioPF
+class FormularioPJ(QFormulario):
+    ENTIDADE = PessoaJuridica
+    TITLE = 'Editar Pessoa Jurídica'
+
+
+class PJListShow(QListShow):
+    TITLE = 'Lista de pessoas jurídicas'
+    FORM = FormularioPJ
+
+    def get_all(self):
+        return PessoaJuridica.select()
+
+    def get_value(self, obj):
+        return obj.razao_social
 
 
 class PFListShow(QListShow):
     TITLE = 'Lista de pessoas físicas'
-    FORM = PFWidget
+    FORM = FormularioPF
 
     def filters(self):
         return [{
@@ -92,9 +104,15 @@ if __name__ == '__main__':
 
     app.set_title('Aplicação de Exemplo')
 
-    pfMenu = app.formPrincipal.new_menu('&Pessoas Físicas')
+    cadastroMenu = app.formPrincipal.new_menu('&Cadastro')
     app.formPrincipal.new_action(
-        pfMenu, 'Pessoas &Físicas', PFListShow,
-        tinytxt='Ctrl+F', tip='Consulta ao cadastro de pessoas físicas.')
+        cadastroMenu, 'Pessoas &Físicas', PFListShow,
+        tinytxt='Ctrl+F', tip='Consulta ao cadastro de pessoas físicas.'
+    )
+
+    app.formPrincipal.new_action(
+        cadastroMenu, 'Pessoas &Jurídicas', PJListShow,
+        tinytxt='Ctrl+J', tip='Consulta ao cadastro de pessoas jurídicas.'
+    )
 
     run()

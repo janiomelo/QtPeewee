@@ -1023,10 +1023,9 @@ class QSearchForm(QGridForm):
 
 
 class QFormWidget(QWidget):
-    FORMULARIO = QFormulario
-
-    def __init__(self, pk=None, dock=None):
+    def __init__(self, pk=None, dock=None, formulario=None):
         QWidget.__init__(self)
+        self.form = formulario
         self.dock = dock
         self.createFormGroupBox()
         self.pk = pk
@@ -1049,11 +1048,13 @@ class QFormWidget(QWidget):
 
         self.adjustSize()
 
-        try:
-            objeto = self.form.ENTIDADE.get_by_id(self.pk)
-        except peewee.DoesNotExist:
-            objeto = None
 
+        try:
+            objeto = self.form.ENTIDADE.get_by_id(
+                self.pk
+            )
+        except (peewee.DoesNotExist, AttributeError):
+            objeto = None
         self.instancia_formulario = self.form.get(objeto)
         self.setWindowTitle(self.form.TITLE)
 
@@ -1083,10 +1084,6 @@ class QFormWidget(QWidget):
 
     def buttons(self):
         return []
-
-    @property
-    def form(self):
-        return self.FORMULARIO
 
     def is_valid(self):
         for k, v in self.instancia_formulario.__dict__.items():
@@ -1226,14 +1223,14 @@ class QResultList(QListWidget):
         self.abrir_formulario(self.selected().id)
 
     def abrir_formulario(self, id=None):
-        formulario = self.parent().FORM(id)
+        formulario = QFormWidget(pk=id, formulario=self.parent().FORM)
         formulario.buttonBox.accepted.connect(self.update_result_set)
         formulario.show()
         app.formPrincipal.add_dock(formulario.windowTitle(), object=formulario)
 
 
 class QListShow(QWidget):
-    FORM = QFormWidget
+    FORM = QFormulario
     LIST = QResultList
     TITLE = 'LIST'
 
